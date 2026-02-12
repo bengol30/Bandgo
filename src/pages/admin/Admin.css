@@ -1,0 +1,489 @@
+/* Admin.css - Enhanced Admin Dashboard Styles */
+
+.page-admin {
+    background-color: var(--color-bg-secondary);
+    min-height: 100vh;
+    padding-bottom: var(--spacing-xl);
+}
+
+.admin-header {
+    background: linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-secondary) 100%);
+    border-bottom: 1px solid var(--color-border);
+    padding: var(--spacing-xl) 0;
+    margin-bottom: var(--spacing-lg);
+    color: white;
+}
+
+.admin-header .page-title {
+    color: white;
+}
+
+.admin-content {
+    background: var(--color-bg-card);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-lg);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+}
+
+.stat-card {
+    background: linear-gradient(145deg, var(--color-bg-tertiary) 0%, var(--color-bg-card) 100%);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    border: 1px solid var(--color-border);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.stat-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: var(--radius-lg);
+    background: var(--color-accent-glow);
+    color: var(--color-accent-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.stat-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.stat-value {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.stat-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+/* ==================== TABS ==================== */
+.admin-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 2px solid var(--color-border);
+}
+
+.admin-tabs .tab {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    font-weight: 500;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.admin-tabs .tab:hover {
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    border-color: var(--color-accent-primary);
+}
+
+.admin-tabs .tab.active {
+    background: var(--color-accent-primary);
+    color: white;
+    border-color: var(--color-accent-primary);
+    box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.3);
+}
+
+.admin-tabs .tab .badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-xs);
+    margin-right: var(--spacing-xs);
+}
+
+.admin-tabs .tab.active .badge {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* ==================== TABLES ==================== */
+.table-container {
+    overflow-x: auto;
+    background: var(--color-bg-card);
+    border-radius: var(--radius-lg);
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.admin-table th {
+    text-align: right;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    border-bottom: 2px solid var(--color-border);
+    white-space: nowrap;
+}
+
+.admin-table th:first-child {
+    border-radius: 0 var(--radius-lg) 0 0;
+}
+
+.admin-table th:last-child {
+    border-radius: var(--radius-lg) 0 0 0;
+}
+
+.admin-table td {
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+    color: var(--color-text-primary);
+}
+
+.admin-table tr:hover td {
+    background: var(--color-bg-secondary);
+}
+
+.admin-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* ==================== ACTION BUTTONS ==================== */
+.action-cell,
+.flex.gap-2 {
+    display: flex;
+    gap: var(--spacing-xs);
+    align-items: center;
+}
+
+.btn-icon-sm {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    background: var(--color-bg-tertiary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-icon-sm:hover {
+    transform: scale(1.1);
+}
+
+.btn-icon-sm.text-error,
+.btn-ghost.text-error {
+    color: var(--color-error);
+}
+
+.btn-icon-sm.text-error:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: var(--color-error);
+}
+
+.btn-icon-sm.text-success,
+.btn-ghost.text-success {
+    color: var(--color-success);
+}
+
+.btn-icon-sm.text-success:hover {
+    background: rgba(34, 197, 94, 0.15);
+    border-color: var(--color-success);
+}
+
+.btn-icon-sm.text-accent,
+.btn-ghost.text-accent {
+    color: var(--color-accent-primary);
+}
+
+.btn-icon-sm.text-accent:hover {
+    background: var(--color-accent-glow);
+    border-color: var(--color-accent-primary);
+}
+
+/* ==================== STATUS BADGES ==================== */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.status-badge.status-pending,
+.status-pending {
+    background: rgba(251, 191, 36, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.status-badge.status-reviewed,
+.status-reviewed {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.status-badge.status-dismissed,
+.status-dismissed {
+    background: rgba(156, 163, 175, 0.15);
+    color: #9ca3af;
+    border: 1px solid rgba(156, 163, 175, 0.3);
+}
+
+.status-badge.status-approved {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.status-badge.status-rejected {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* ==================== SETTINGS PANEL ==================== */
+.settings-container {
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+}
+
+.settings-container .section-title {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-lg);
+}
+
+.settings-container .form-group {
+    margin-bottom: var(--spacing-md);
+}
+
+.settings-container .label {
+    display: block;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.settings-container .input {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-card);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-md);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.settings-container .input:focus {
+    outline: none;
+    border-color: var(--color-accent-primary);
+    box-shadow: 0 0 0 3px var(--color-accent-glow);
+}
+
+/* ==================== SECTION HEADERS ==================== */
+.section-title {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+/* ==================== UTILITY CLASSES ==================== */
+.text-center {
+    text-align: center;
+}
+
+.text-xs {
+    font-size: var(--font-size-xs);
+}
+
+.text-secondary {
+    color: var(--color-text-secondary);
+}
+
+.p-4 {
+    padding: var(--spacing-lg);
+}
+
+.pt-4 {
+    padding-top: var(--spacing-lg);
+}
+
+.px-4 {
+    padding-left: var(--spacing-lg);
+    padding-right: var(--spacing-lg);
+}
+
+.mb-4 {
+    margin-bottom: var(--spacing-lg);
+}
+
+.mt-4 {
+    margin-top: var(--spacing-lg);
+}
+
+.mt-6 {
+    margin-top: var(--spacing-xl);
+}
+
+.mr-2 {
+    margin-right: var(--spacing-sm);
+}
+
+.gap-2 {
+    gap: var(--spacing-sm);
+}
+
+.gap-4 {
+    gap: var(--spacing-lg);
+}
+
+.gap-6 {
+    gap: var(--spacing-xl);
+}
+
+.grid {
+    display: grid;
+}
+
+.grid-cols-1 {
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+    .md\:grid-cols-2 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.bg-base-100 {
+    background: var(--color-bg-card);
+}
+
+.bg-base-200 {
+    background: var(--color-bg-tertiary);
+}
+
+.rounded-lg {
+    border-radius: var(--radius-lg);
+}
+
+.shadow-sm {
+    box-shadow: var(--shadow-sm);
+}
+
+.justify-end {
+    justify-content: flex-end;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+
+.items-center {
+    align-items: center;
+}
+
+/* ==================== CREATE BUTTON ==================== */
+.admin-content .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    background: var(--color-accent-primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.admin-content .btn-primary:hover {
+    background: var(--color-accent-secondary);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.3);
+}
+
+.btn-sm {
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: var(--font-size-sm);
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 768px) {
+    .admin-tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: var(--spacing-sm);
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .admin-tabs .tab {
+        flex-shrink: 0;
+        font-size: var(--font-size-xs);
+        padding: var(--spacing-xs) var(--spacing-sm);
+    }
+
+    .admin-table th,
+    .admin-table td {
+        padding: var(--spacing-sm);
+        font-size: var(--font-size-sm);
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .stat-card {
+        padding: var(--spacing-md);
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+    }
+
+    .stat-value {
+        font-size: var(--font-size-xl);
+    }
+}

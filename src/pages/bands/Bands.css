@@ -1,0 +1,385 @@
+/* ============================================
+   bandgo - Bands List Page Styles
+   ============================================ */
+
+/* ============ BAND CARD ============ */
+.band-card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    animation: slide-up 0.3s ease;
+}
+
+.band-card:hover {
+    border-color: var(--color-border-accent);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.band-card-cover {
+    height: 120px;
+    background: linear-gradient(135deg, var(--color-bg-tertiary) 0%, var(--color-bg-card-hover) 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.band-card-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.band-card-cover-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    opacity: 0.3;
+}
+
+.band-card-body {
+    padding: var(--spacing-lg);
+}
+
+.band-card-name {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    margin-bottom: var(--spacing-xs);
+}
+
+.band-card-genres {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
+}
+
+.band-card-members {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+/* Progress Summary */
+.band-progress-summary {
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+}
+
+.progress-summary-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-sm);
+}
+
+.progress-summary-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.progress-summary-value {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-accent-primary);
+}
+
+/* ============ BAND TABS ============ */
+.bands-page-tabs {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+    background: var(--color-bg-tertiary);
+    padding: var(--spacing-xs);
+    border-radius: var(--radius-lg);
+}
+
+.bands-tab {
+    flex: 1;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: var(--font-family);
+}
+
+.bands-tab:hover {
+    color: var(--color-text-primary);
+}
+
+.bands-tab.active {
+    background: var(--color-bg-card);
+    color: var(--color-accent-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+/* ============ BAND DETAIL PAGE ============ */
+.band-detail-header {
+    position: relative;
+    height: 200px;
+    background: linear-gradient(135deg, var(--color-bg-secondary) 0%, var(--color-bg-tertiary) 100%);
+    margin-bottom: var(--spacing-xl);
+}
+
+.band-detail-header img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.band-detail-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 100px;
+    background: linear-gradient(to top, var(--color-bg-primary), transparent);
+}
+
+.band-detail-info {
+    position: absolute;
+    bottom: var(--spacing-lg);
+    right: var(--spacing-lg);
+    left: var(--spacing-lg);
+    z-index: 1;
+}
+
+.band-detail-name {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    margin-bottom: var(--spacing-xs);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.band-detail-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+/* Band Detail Tabs */
+.band-detail-tabs {
+    display: flex;
+    gap: var(--spacing-xs);
+    padding: 0 var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    overflow-x: auto;
+}
+
+.band-detail-tab {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all var(--transition-fast);
+    font-family: var(--font-family);
+}
+
+.band-detail-tab:hover {
+    border-color: var(--color-border-hover);
+}
+
+.band-detail-tab.active {
+    background: var(--color-accent-glow);
+    border-color: var(--color-accent-primary);
+    color: var(--color-accent-primary);
+}
+
+/* ============ PROGRESS TIMELINE ============ */
+.progress-timeline {
+    padding: var(--spacing-lg);
+}
+
+.timeline-step {
+    display: flex;
+    gap: var(--spacing-md);
+    padding-bottom: var(--spacing-xl);
+    position: relative;
+}
+
+.timeline-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 19px;
+    top: 40px;
+    bottom: 0;
+    width: 2px;
+    background: var(--color-border);
+}
+
+.timeline-step.completed::after {
+    background: var(--color-accent-primary);
+}
+
+.timeline-step.current::after {
+    background: linear-gradient(to bottom, var(--color-accent-primary), var(--color-border));
+}
+
+.timeline-step-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-full);
+    background: var(--color-bg-tertiary);
+    border: 2px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    z-index: 1;
+}
+
+.timeline-step.completed .timeline-step-icon {
+    background: var(--color-success-bg);
+    border-color: var(--color-success);
+}
+
+.timeline-step.current .timeline-step-icon {
+    background: var(--color-accent-glow);
+    border-color: var(--color-accent-primary);
+    animation: pulse 2s infinite;
+}
+
+.timeline-step.locked .timeline-step-icon {
+    opacity: 0.5;
+}
+
+.timeline-step-content {
+    flex: 1;
+    padding-top: var(--spacing-xs);
+}
+
+.timeline-step-title {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    margin-bottom: var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.timeline-step-desc {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.timeline-step-progress {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background: var(--color-bg-card);
+    border-radius: var(--radius-md);
+}
+
+.timeline-step-cta {
+    margin-top: var(--spacing-md);
+}
+
+/* ============ MEMBERS LIST ============ */
+.members-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.member-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+.member-avatar {
+    width: 48px;
+    height: 48px;
+}
+
+.member-info {
+    flex: 1;
+}
+
+.member-name {
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.member-role {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.member-badge {
+    margin-right: auto;
+}
+
+/* ============ BAND ACTIONS ============ */
+.band-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    padding: 0 var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.action-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-lg);
+    border: none;
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+}
+
+.action-btn-primary {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    color: white;
+}
+
+.action-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.action-btn-secondary {
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+}
+
+.action-btn-secondary:hover {
+    background: var(--color-bg-tertiary);
+    border-color: var(--color-primary);
+}

@@ -1,0 +1,64 @@
+// ============================================
+// bandgo - Top Header Component
+// ============================================
+
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { Bell, Settings } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { localRepository } from '../../repositories/LocalRepository';
+import './Navigation.css';
+
+export function TopHeader() {
+    const { user, isAdmin } = useAuth();
+    const location = useLocation();
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    useEffect(() => {
+        loadNotifications();
+    }, [user]);
+
+    const loadNotifications = async () => {
+        if (!user) return;
+        try {
+            const notifications = await localRepository.getNotifications(user.id);
+            const unread = notifications.filter(n => !n.read).length;
+            setUnreadCount(unread);
+        } catch (error) {
+            console.error('Failed to load notifications:', error);
+        }
+    };
+
+    // Don't show header on onboarding or specific pages
+    if (location.pathname === '/onboarding' || location.pathname.includes('/chat') || location.pathname.includes('/messages/')) {
+        return null;
+    }
+
+    return (
+        <header className="top-header">
+            <div className="header-content">
+                <Link to="/" className="header-logo">
+                    <span className="header-logo-icon">🎸</span>
+                    <span className="header-logo-text">Band.go</span>
+                </Link>
+
+                <div className="header-actions">
+                    <Link to="/notifications" className="btn btn-icon btn-ghost notification-btn">
+                        <Bell size={20} />
+                        {unreadCount > 0 && (
+                            <span className="notification-badge">
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
+                        )}
+                    </Link>
+
+                    {isAdmin && (
+                        <Link to="/admin" className="btn btn-icon btn-ghost">
+                            <Settings size={20} />
+                        </Link>
+                    )}
+                </div>
+            </div>
+        </header>
+    );
+}

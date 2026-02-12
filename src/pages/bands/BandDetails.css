@@ -1,0 +1,466 @@
+/* ============================================
+   bandgo - Band Details Page Styles
+   Complete redesign for proper layout
+   ============================================ */
+
+/* Page Container */
+.page-band-details {
+    padding: 0 !important;
+    padding-bottom: 100px !important;
+    min-height: 100vh;
+}
+
+/* Fixed Back Button */
+.page-band-details>.back-button {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: none;
+    border-radius: 24px;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.page-band-details>.back-button:hover {
+    background: rgba(0, 0, 0, 0.7);
+    transform: scale(1.02);
+}
+
+/* ============ HEADER WITH COVER ============ */
+.band-detail-header {
+    position: relative;
+    height: 280px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    overflow: hidden;
+}
+
+.band-detail-header .band-cover-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.band-cover-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    opacity: 0.3;
+}
+
+.band-header-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 80px 20px 24px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.6) 50%, transparent 100%);
+}
+
+.band-header-overlay .band-name {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: white;
+    margin: 0 0 12px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    line-height: 1.2;
+}
+
+.band-header-overlay .band-meta {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    color: rgba(255, 255, 255, 0.85);
+    flex-wrap: wrap;
+}
+
+.band-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+}
+
+.band-meta-item svg {
+    opacity: 0.8;
+}
+
+/* ============ GENRES ============ */
+.band-genres {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 20px;
+    padding-bottom: 0;
+}
+
+.genre-tag {
+    padding: 6px 16px;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    transition: all 0.2s;
+}
+
+.genre-tag:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+/* ============ ACTION BUTTONS ============ */
+.band-actions {
+    display: flex;
+    gap: 12px;
+    padding: 20px;
+}
+
+.action-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 20px;
+    border: none;
+    border-radius: 14px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.action-btn-primary {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    color: white;
+    box-shadow: 0 4px 15px rgba(var(--color-primary-rgb, 99, 102, 241), 0.25);
+}
+
+.action-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(var(--color-primary-rgb, 99, 102, 241), 0.35);
+}
+
+.action-btn-secondary {
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+}
+
+.action-btn-secondary:hover {
+    background: var(--color-bg-tertiary);
+    border-color: var(--color-primary);
+}
+
+/* ============ PROGRESS SECTION ============ */
+.band-progress-section {
+    margin: 0 20px 20px;
+    padding: 20px;
+    background: var(--color-bg-secondary);
+    border-radius: 16px;
+    border: 1px solid var(--color-border);
+}
+
+.section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 16px;
+    color: var(--color-text-primary);
+}
+
+.progress-bar-container {
+    height: 10px;
+    background: var(--color-bg-tertiary);
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-primary), var(--color-success));
+    border-radius: 5px;
+    transition: width 0.5s ease-out;
+}
+
+.progress-text {
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    margin: 0;
+    text-align: center;
+}
+
+/* ============ TABS ============ */
+.band-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 0 20px;
+    margin-bottom: 20px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.band-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.tab-button {
+    flex: 1;
+    min-width: 100px;
+    padding: 12px 16px;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    font-family: inherit;
+    text-align: center;
+}
+
+.tab-button:hover {
+    border-color: var(--color-primary);
+    color: var(--color-text-primary);
+}
+
+.band-tabs .tab-button.active,
+.page-band-details .tab-button.active {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary)) !important;
+    border-color: transparent !important;
+    color: white !important;
+}
+
+/* ============ TAB CONTENT ============ */
+.tab-content {
+    padding: 0 20px;
+}
+
+/* Overview Tab */
+.overview-tab .section {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+.overview-tab .section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 16px;
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.band-description {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+    margin: 0;
+}
+
+/* Members List */
+.members-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.member-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    background: var(--color-bg-tertiary);
+    border-radius: 14px;
+    transition: all 0.2s;
+}
+
+.member-item:hover {
+    background: var(--color-bg-card-hover);
+}
+
+.member-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.member-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.member-avatar .avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    color: white;
+    font-weight: 600;
+    font-size: 1.2rem;
+}
+
+.member-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.member-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+}
+
+.leader-badge {
+    padding: 3px 10px;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    color: white;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.member-instrument {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+}
+
+/* ============ REHEARSALS TAB ============ */
+.rehearsals-tab .empty-state,
+.songs-tab .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    color: var(--color-text-muted);
+    text-align: center;
+}
+
+.rehearsals-tab .empty-state svg,
+.songs-tab .empty-state svg {
+    opacity: 0.5;
+    margin-bottom: 16px;
+}
+
+.rehearsals-tab .empty-state p,
+.songs-tab .empty-state p {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.rehearsals-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.rehearsal-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: var(--color-bg-secondary);
+    border-radius: 14px;
+    border: 1px solid var(--color-border);
+    transition: all 0.2s;
+}
+
+.rehearsal-item:hover {
+    border-color: var(--color-primary);
+}
+
+.rehearsal-status-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-tertiary);
+    flex-shrink: 0;
+}
+
+.rehearsal-status-icon .status-approved {
+    color: var(--color-success);
+}
+
+.rehearsal-status-icon .status-pending {
+    color: var(--color-warning);
+}
+
+.rehearsal-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.rehearsal-date {
+    display: block;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 4px;
+}
+
+.rehearsal-location {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+}
+
+.rehearsal-status-badge {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.rehearsal-status-badge.approved,
+.rehearsal-item.approved .rehearsal-status-badge {
+    background: rgba(52, 199, 89, 0.15);
+    color: var(--color-success);
+}
+
+.rehearsal-status-badge.scheduled,
+.rehearsal-item.scheduled .rehearsal-status-badge {
+    background: rgba(255, 159, 10, 0.15);
+    color: var(--color-warning);
+}
+
+.rehearsal-status-badge.cancelled,
+.rehearsal-item.cancelled .rehearsal-status-badge {
+    background: rgba(255, 59, 48, 0.15);
+    color: var(--color-error);
+}

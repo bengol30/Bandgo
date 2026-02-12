@@ -1,0 +1,192 @@
+/* העיצוב החדש לדף עריכת הפרופיל */
+
+.edit-profile-page {
+    background-color: var(--color-bg-primary);
+    min-height: 100vh;
+    padding-bottom: var(--spacing-3xl);
+}
+
+.edit-profile-container {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.edit-profile-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.edit-profile-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+/* Avatar Section */
+.avatar-edit-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-2xl);
+    padding: var(--spacing-lg);
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+}
+
+.avatar-preview-wrapper {
+    position: relative;
+    width: 120px;
+    height: 120px;
+}
+
+.avatar-preview {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--color-bg-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.avatar-placeholder-large {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: var(--color-accent-secondary);
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    font-weight: bold;
+    border: 3px solid var(--color-bg-primary);
+}
+
+.avatar-input-wrapper {
+    width: 100%;
+    max-width: 400px;
+}
+
+/* Form Sections */
+.edit-section {
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-lg);
+    border: 1px solid var(--color-border);
+}
+
+.edit-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.edit-section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+/* Form Controls */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+}
+
+@media (max-width: 600px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+.input-helper {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin-top: var(--spacing-xs);
+}
+
+/* Instruments List */
+.instrument-edit-item {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+    background: var(--color-bg-tertiary);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-sm);
+    transition: transform 0.2s;
+}
+
+.instrument-edit-item:hover {
+    transform: translateX(-4px);
+    background: var(--color-bg-tertiary-hover);
+}
+
+.remove-inst-btn {
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.remove-inst-btn:hover {
+    opacity: 1;
+    background: rgba(255, 0, 0, 0.1);
+    border-radius: 50%;
+}
+
+/* Genres Grid */
+.genres-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.genre-chip {
+    padding: 8px 16px;
+    border-radius: 20px;
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.genre-chip:hover {
+    background: var(--color-bg-tertiary-hover);
+    border-color: var(--color-text-muted);
+}
+
+.genre-chip.selected {
+    background: var(--color-accent-primary);
+    color: white;
+    border-color: var(--color-accent-primary);
+    box-shadow: 0 2px 8px rgba(var(--color-accent-primary-rgb), 0.3);
+}
+
+/* Actions Footer */
+.edit-actions-footer {
+    position: sticky;
+    bottom: var(--spacing-md);
+    background: rgba(30, 30, 40, 0.9);
+    /* Dark semi-transparent */
+    backdrop-filter: blur(10px);
+    padding: var(--spacing-md) var(--spacing-xl);
+    border-radius: var(--radius-full);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-md);
+    border: 1px solid var(--color-border);
+    margin-top: var(--spacing-xl);
+    z-index: 100;
+}
