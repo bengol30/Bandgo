@@ -21,7 +21,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { localRepository } from '../../repositories/LocalRepository';
 import { useToast } from '../../contexts/ToastContext';
-import { User, PerformanceRequest, Event, Band, PerformanceRequestStatus, EventType, SystemSettings, Report as AppReport, UserRole } from '../../types';
+import { User, PerformanceRequest, Event, Band, PerformanceRequestStatus, EventType, SystemSettings, Report as AppReport, UserRole, EventSubmission, EventSubmissionStatus } from '../../types';
 import { Modal, ConfirmDialog } from '../../components/Modal';
 import { googleCalendarService } from '../../services/GoogleCalendarService';
 import './Admin.css';
@@ -31,7 +31,7 @@ export function AdminPage() {
     const { showToast } = useToast();
     const navigate = useNavigate();
 
-    const [activeTab, setActiveTab] = useState<'overview' | 'requests' | 'users' | 'events' | 'settings' | 'reports'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'requests' | 'users' | 'events' | 'settings' | 'reports' | 'submissions'>('overview');
     const [loading, setLoading] = useState(true);
 
     const [stats, setStats] = useState({
@@ -39,7 +39,8 @@ export function AdminPage() {
         requests: 0,
         bands: 0,
         events: 0,
-        reports: 0
+        reports: 0,
+        submissions: 0
     });
 
     const [users, setUsers] = useState<User[]>([]);
@@ -48,6 +49,7 @@ export function AdminPage() {
     const [bandsMap, setBandsMap] = useState<Record<string, Band>>({});
     const [settings, setSettings] = useState<SystemSettings | null>(null);
     const [reports, setReports] = useState<AppReport[]>([]);
+    const [submissions, setSubmissions] = useState<EventSubmission[]>([]);
 
     // Modal States
     const [showCreateEventModal, setShowCreateEventModal] = useState(false);
@@ -56,6 +58,12 @@ export function AdminPage() {
     const [showResolveReportModal, setShowResolveReportModal] = useState(false);
     const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
     const [reportNote, setReportNote] = useState('');
+
+    // Submission Modals
+    const [showSubmissionRejectModal, setShowSubmissionRejectModal] = useState(false);
+    const [showSubmissionChangesModal, setShowSubmissionChangesModal] = useState(false);
+    const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
+    const [submissionNote, setSubmissionNote] = useState('');
 
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [rejectRequestId, setRejectRequestId] = useState<string | null>(null);
@@ -93,7 +101,8 @@ export function AdminPage() {
                     requests: allRequests.length,
                     bands: allBands.length,
                     events: allEvents.length,
-                    reports: allReports.filter(r => r.status === 'pending').length
+                    reports: allReports.filter(r => r.status === 'pending').length,
+                    submissions: (await localRepository.getPendingEventSubmissions()).length
                 });
 
                 const bMap: Record<string, Band> = {};
@@ -112,6 +121,11 @@ export function AdminPage() {
 
             // Selective Tab Loading
             switch (tabToLoad) {
+                case 'submissions':
+                    const allSubmissions = await localRepository.getAllEventSubmissions();
+                    console.log('AdminPage loaded submissions:', allSubmissions);
+                    setSubmissions(allSubmissions);
+                    break;
                 case 'users':
                     const usersData = await localRepository.getAllUsers();
                     setUsers(usersData);
@@ -209,6 +223,70 @@ export function AdminPage() {
             loadData();
         } catch (error) {
             showToast('שגיאה בדחיית הבקשה', 'error');
+        }
+    };
+
+    // === EVENT SUBMISSION HANDLERS ===
+
+    const handleApproveSubmission = (sub: EventSubmission) => {
+        openConfirmDialog(
+            'אישור בקשת אירוע',
+            `האם לאשר את האירוע "${sub.title}" וליצור אותו בלוח האירועים?`,
+            async () => {
+                try {
+                    await localRepository.approveEventSubmission(sub.id, user!.id);
+                    showToast('האירוע אושר ופורסם בהצלחה!', 'success');
+                    loadData('submissions');
+                } catch (error) {
+                    console.error(error);
+                    showToast('שגיאה באישור האירוע', 'error');
+                }
+            },
+            'warning'
+        );
+    };
+
+    const openSubmissionRejectModal = (subId: string) => {
+        setSelectedSubmissionId(subId);
+        setSubmissionNote('');
+        setShowSubmissionRejectModal(true);
+    };
+
+    const handleRejectSubmissionConfirm = async () => {
+        if (!selectedSubmissionId || !submissionNote.trim()) {
+            showToast('יש להזין סיבת דחייה', 'error');
+            return;
+        }
+        try {
+            await localRepository.rejectEventSubmission(selectedSubmissionId, submissionNote);
+            showToast('הבקשה נדחתה', 'info');
+            setShowSubmissionRejectModal(false);
+            loadData('submissions');
+        } catch (error) {
+            console.error(error);
+            showToast('שגיאה בדחיית הבקשה', 'error');
+        }
+    };
+
+    const openSubmissionChangesModal = (subId: string) => {
+        setSelectedSubmissionId(subId);
+        setSubmissionNote('');
+        setShowSubmissionChangesModal(true);
+    };
+
+    const handleRequestChangesConfirm = async () => {
+        if (!selectedSubmissionId || !submissionNote.trim()) {
+            showToast('יש להזין הערות לתיקון', 'error');
+            return;
+        }
+        try {
+            await localRepository.requestChangesOnSubmission(selectedSubmissionId, submissionNote);
+            showToast('הבקשה הוחזרה לתיקונים', 'info');
+            setShowSubmissionChangesModal(false);
+            loadData('submissions');
+        } catch (error) {
+            console.error(error);
+            showToast('שגיאה בשליחת הבקשה לתיקון', 'error');
         }
     };
 
@@ -366,8 +444,14 @@ export function AdminPage() {
                         <LayoutDashboard size={16} /> סקירה
                     </button>
                     <button className={`tab ${activeTab === 'requests' ? 'active' : ''}`} onClick={() => setActiveTab('requests')}>
-                        <Music size={16} /> בקשות להופעה
-                        {stats.requests > 0 && <span className="badge badge-accent mr-2">{stats.requests}</span>}
+                        <Music size={18} />
+                        <span>בקשות להקה</span>
+                        {stats.requests > 0 && <span className="badge badge-primary badge-sm ml-2">{stats.requests}</span>}
+                    </button>
+                    <button className={`tab ${activeTab === 'submissions' ? 'active' : ''}`} onClick={() => setActiveTab('submissions')}>
+                        <Calendar size={18} />
+                        <span>בקשות אירועים</span>
+                        {stats.submissions > 0 && <span className="badge badge-primary badge-sm ml-2">{stats.submissions}</span>}
                     </button>
                     <button className={`tab ${activeTab === 'events' ? 'active' : ''}`} onClick={() => setActiveTab('events')}>
                         <Calendar size={16} /> אירועים
@@ -634,6 +718,83 @@ export function AdminPage() {
                         </div>
                     )}
 
+                    {activeTab === 'submissions' && (
+                        <div className="tab-content">
+                            <div className="section-header">
+                                <h2>בקשות אירועים ממתינות</h2>
+                                <button className="btn btn-secondary btn-sm" onClick={() => loadData('submissions')}>
+                                    רענן
+                                </button>
+                            </div>
+
+                            {submissions.length === 0 ? (
+                                <div className="empty-state">
+                                    <div className="empty-state-icon">✅</div>
+                                    <h3>אין בקשות אירועים ממתינות</h3>
+                                </div>
+                            ) : (
+                                <div className="grid">
+                                    {submissions.map(sub => (
+                                        <div key={sub.id} className="card p-4">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <h3 className="font-bold text-lg">{sub.title}</h3>
+                                                        <span className={`badge ${sub.status === 'pending' ? 'badge-warning' :
+                                                            sub.status === 'approved' ? 'badge-success' : 'badge-error'
+                                                            }`}>
+                                                            {sub.status === 'pending' ? 'ממתין' :
+                                                                sub.status === 'approved' ? 'אושר' :
+                                                                    sub.status === 'needs_changes' ? 'דורש תיקון' : 'נדחה'}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-secondary text-sm">
+                                                        מגיש: {(users.find(u => u.id === sub.submittedByUserId)?.displayName) || 'משתמש לא ידוע'} • {new Date(sub.createdAt).toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-tertiary p-3 rounded mb-4 text-sm">
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div><strong>סוג:</strong> {sub.type}</div>
+                                                    <div><strong>תאריך:</strong> {new Date(sub.startAt).toLocaleString()}</div>
+                                                    <div><strong>מיקום:</strong> {sub.locationText}</div>
+                                                    <div><strong>צפי:</strong> {sub.capacity || 'ללא הגבלה'}</div>
+                                                </div>
+                                                <div className="mt-2 text-secondary">
+                                                    {sub.description}
+                                                </div>
+                                            </div>
+
+                                            {sub.status === 'pending' && (
+                                                <div className="flex gap-2 justify-end">
+                                                    <button
+                                                        className="btn btn-error btn-sm"
+                                                        onClick={() => openSubmissionRejectModal(sub.id)}
+                                                    >
+                                                        <X size={16} /> דחה
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-secondary btn-sm"
+                                                        onClick={() => openSubmissionChangesModal(sub.id)}
+                                                    >
+                                                        <MessageSquare size={16} /> בקש תיקון
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-success btn-sm"
+                                                        onClick={() => handleApproveSubmission(sub)}
+                                                    >
+                                                        <Check size={16} /> אשר וצור אירוע
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {activeTab === 'settings' && settings && (
                         <div className="settings-container p-4 bg-base-200 rounded-lg m-4">
                             <h3 className="section-title mb-4 flex items-center gap-2">
@@ -815,6 +976,49 @@ export function AdminPage() {
                     </div>
                 </Modal>
             </div>
+            {/* Submission Reject Modal */}
+            <Modal
+                isOpen={showSubmissionRejectModal}
+                onClose={() => setShowSubmissionRejectModal(false)}
+                title="דחיית בקשת אירוע"
+            >
+                <div className="p-4">
+                    <p className="mb-4">נא לפרט את סיבת הדחייה (תישלח למשתמש):</p>
+                    <textarea
+                        className="form-textarea w-full mb-4"
+                        rows={4}
+                        value={submissionNote}
+                        onChange={(e) => setSubmissionNote(e.target.value)}
+                        placeholder="סיבת הדחייה..."
+                    />
+                    <div className="flex justify-end gap-2">
+                        <button className="btn btn-ghost" onClick={() => setShowSubmissionRejectModal(false)}>ביטול</button>
+                        <button className="btn btn-error" onClick={handleRejectSubmissionConfirm}>דחה בקשה</button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Submission Changes Modal */}
+            <Modal
+                isOpen={showSubmissionChangesModal}
+                onClose={() => setShowSubmissionChangesModal(false)}
+                title="בקשת תיקונים"
+            >
+                <div className="p-4">
+                    <p className="mb-4">מה נדרש לתקן בבקשה?</p>
+                    <textarea
+                        className="form-textarea w-full mb-4"
+                        rows={4}
+                        value={submissionNote}
+                        onChange={(e) => setSubmissionNote(e.target.value)}
+                        placeholder="פרט את התיקונים הנדרשים..."
+                    />
+                    <div className="flex justify-end gap-2">
+                        <button className="btn btn-ghost" onClick={() => setShowSubmissionChangesModal(false)}>ביטול</button>
+                        <button className="btn btn-primary" onClick={handleRequestChangesConfirm}>שלח לבקשת תיקון</button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }

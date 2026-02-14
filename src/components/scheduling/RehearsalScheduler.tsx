@@ -40,6 +40,7 @@ export function RehearsalScheduler({ band }: RehearsalSchedulerProps) {
     const [users, setUsers] = useState<Record<string, User>>({});
     const [currentWeekStart, setCurrentWeekStart] = useState(getStartOfWeek(new Date()));
     const [availability, setAvailability] = useState<Record<string, AvailabilityStatus>>({});
+    const [allAvailability, setAllAvailability] = useState<Record<string, { available: number; total: number }>>({});
     const [suggestions, setSuggestions] = useState<SchedulingSuggestion[]>([]);
     const [polls, setPolls] = useState<RehearsalPoll[]>([]); // Active polls
     const [activeTab, setActiveTab] = useState<'availability' | 'suggestions'>('availability');
@@ -95,15 +96,21 @@ export function RehearsalScheduler({ band }: RehearsalSchedulerProps) {
             usersData.forEach(u => { usersMap[u.id] = u; });
             setUsers(usersMap);
 
-            // Build availability map from saved data
+            // Build availability map from saved data (current user)
             const availMap: Record<string, AvailabilityStatus> = {};
+            // Build aggregate availability for all members
+            const aggMap: Record<string, { available: number; total: number }> = {};
             availData.forEach(slot => {
-                if (slot.userId === user?.id) {
-                    slot.timeSlots.forEach(ts => {
-                        const key = `${slot.date.toDateString()}-${ts.start}`;
+                slot.timeSlots.forEach(ts => {
+                    const key = `${slot.date.toDateString()}-${ts.start}`;
+                    if (slot.userId === user?.id) {
                         availMap[key] = ts.status;
-                    });
-                }
+                    }
+                    // Aggregate all members
+                    if (!aggMap[key]) aggMap[key] = { available: 0, total: 0 };
+                    aggMap[key].total++;
+                    if (ts.status === 'available') aggMap[key].available++;
+                });
             });
 
             // SYNC WITH GOOGLE (STUDIO CALENDAR): If enabled in settings, fetch busy slots
@@ -137,6 +144,7 @@ export function RehearsalScheduler({ band }: RehearsalSchedulerProps) {
             }
 
             setAvailability(availMap);
+            setAllAvailability(aggMap);
         } catch (error) {
             console.error('Failed to load scheduler:', error);
             showToast('שגיאה בטעינת לוח הזמנים', 'error');
@@ -164,11 +172,13 @@ export function RehearsalScheduler({ band }: RehearsalSchedulerProps) {
             return;
         }
 
+        console.log('Toggling availability for:', date.toDateString(), slot.start);
         const key = `${date.toDateString()}-${slot.start}`;
-        const currentStatus = availability[key] || AvailabilityStatus.UNAVAILABLE;
+        const currentStatus = availability[key]; // undefined = not set yet
 
         let nextStatus: AvailabilityStatus;
         switch (currentStatus) {
+            case undefined: // Not set → available
             case AvailabilityStatus.UNAVAILABLE:
                 nextStatus = AvailabilityStatus.AVAILABLE;
                 break;
@@ -179,7 +189,11 @@ export function RehearsalScheduler({ band }: RehearsalSchedulerProps) {
                 nextStatus = AvailabilityStatus.UNAVAILABLE;
         }
 
-        setAvailability(prev => ({ ...prev, [key]: nextStatus }));
+        // Create new object to ensure re-render
+        const newAvailability = { ...availability };
+        newAvailability[key] = nextStatus;
+        setAvailability(newAvailability);
+        console.log('New status:', nextStatus, 'for key:', key);
     };
 
     const getStatusIcon = (status: AvailabilityStatus | undefined) => {
@@ -188,8 +202,10 @@ export function RehearsalScheduler({ band }: RehearsalSchedulerProps) {
                 return <Check className="text-success" size={16} />;
             case AvailabilityStatus.MAYBE:
                 return <HelpCircle className="text-warning" size={16} />;
-            default:
+            case AvailabilityStatus.UNAVAILABLE:
                 return <X className="text-error" size={16} />;
+            default:
+                return null; // Not set yet — neutral/empty
         }
     };
 
@@ -200,7 +216,10 @@ export function RehearsalScheduler({ band }: RehearsalSchedulerProps) {
             // Group availability by date
             const dateMap = new Map<string, AvailabilitySlot['timeSlots']>();
             Object.entries(availability).forEach(([key, status]) => {
-                const [dateStr, timeStart] = key.split('-');
+                // Key format: "Mon Feb 14 2026-09:00" — split at last '-'
+                const lastDash = key.lastIndexOf('-');
+                if (lastDash === -1) return;
+                const dateStr = key.substring(0, lastDash);
                 const slot = timeSlots.find(s => key.endsWith(s.start));
                 if (!slot) return;
 
@@ -233,6 +252,7 @@ export function RehearsalScheduler({ band }: RehearsalSchedulerProps) {
     };
 
     const handleScheduleRehearsal = async (suggestion: SchedulingSuggestion) => {
+        if (!confirm(`לקבוע חזרה ב-${new Date(suggestion.dateTime).toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' })}?`)) return;
         try {
             setSaving(true);
             await localRepository.createRehearsal({
@@ -330,6 +350,7 @@ export function RehearsalScheduler({ band }: RehearsalSchedulerProps) {
                                 poll={poll}
                                 usersMap={users}
                                 bandMembers={band.members}
+                                bandName={band.name || 'להקה'}
                                 onVote={loadData}
                                 isLeader={band.members.find(m => m.userId === user?.id)?.isLeader || false}
                             />
@@ -417,11 +438,20 @@ export function RehearsalScheduler({ band }: RehearsalSchedulerProps) {
                                     return (
                                         <button
                                             key={key}
-                                            className={`slot-btn h-10 rounded flex items-center justify-center transition-colors ${status ? '' : 'bg-surface'} ${status === 'available' ? 'bg-success/20 text-success' : status === 'maybe' ? 'bg-warning/20 text-warning' : status === 'unavailable' ? 'bg-error/20 text-error' : ''} ${isPast ? 'opacity-30 cursor-not-allowed' : 'hover:brightness-95'}`}
-                                            onClick={() => !isPast && toggleAvailability(day, slot)}
-                                            disabled={isPast}
+                                            className={`slot-btn h-10 rounded flex flex-col items-center justify-center transition-colors ${status ? '' : 'bg-surface'} ${status === 'available' ? 'bg-success/20 text-success' : status === 'maybe' ? 'bg-warning/20 text-warning' : status === 'unavailable' ? 'bg-error/20 text-error' : ''} ${isPast ? 'opacity-30 cursor-not-allowed' : 'hover:brightness-95'}`}
+                                            onClick={() => {
+                                                console.log('Clicked slot:', day.toDateString(), slot.start, 'isPast:', isPast);
+                                                if (!isPast) toggleAvailability(day, slot);
+                                                else showToast('לא ניתן לשנות זמינות בעבר', 'info');
+                                            }}
+                                        // disabled={isPast} // Removed disabled to allow toast
                                         >
                                             {getStatusIcon(status)}
+                                            {allAvailability[key] && allAvailability[key].available > 0 && (
+                                                <span className="text-xs opacity-60" style={{ fontSize: '0.6rem', lineHeight: 1 }}>
+                                                    {allAvailability[key].available}/{band.members.length}
+                                                </span>
+                                            )}
                                         </button>
                                     );
                                 })}

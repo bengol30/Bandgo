@@ -41,6 +41,8 @@ import {
     PostType,
     PerformanceRequestStatus,
     LiveSessionRequestStatus,
+    EventSubmission,
+    EventSubmissionStatus,
     UserRole,
 } from '../types';
 import {
@@ -78,6 +80,7 @@ class LocalRepository implements IRepository {
     private likes: PostLike[] = [];
     private events: Event[] = [];
     private eventRegistrations: EventRegistration[] = [];
+    private eventSubmissions: EventSubmission[] = [];
     private notifications: Notification[] = [];
     private chatMessages: ChatMessage[] = [];
     private conversations: Conversation[] = [];
@@ -149,6 +152,7 @@ class LocalRepository implements IRepository {
                 this.reports = parsed.reports || [...mockReports];
                 this.conversations = parsed.conversations || [...mockConversations];
                 this.directMessages = parsed.directMessages || [...mockDirectMessages];
+                this.eventSubmissions = parsed.eventSubmissions || [];
             } else {
                 this.resetToDefaults();
             }
@@ -179,6 +183,7 @@ class LocalRepository implements IRepository {
         this.chatMessages = [];
         this.conversations = [...mockConversations];
         this.directMessages = [...mockDirectMessages];
+        this.eventSubmissions = [];
         this.saveToStorage();
     }
 
@@ -205,6 +210,7 @@ class LocalRepository implements IRepository {
                 conversations: this.conversations,
                 directMessages: this.directMessages,
                 availabilitySlots: this.availabilitySlots,
+                eventSubmissions: this.eventSubmissions,
             };
             localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
         } catch (error) {
@@ -880,6 +886,21 @@ class LocalRepository implements IRepository {
         return this.polls[pollIndex];
     }
 
+    async removeVoteFromPoll(pollId: string, optionId: string, userId: string): Promise<RehearsalPoll> {
+        await this.delay();
+        const pollIndex = this.polls.findIndex(p => p.id === pollId);
+        if (pollIndex === -1) throw new Error('Poll not found');
+
+        const optionIndex = this.polls[pollIndex].options.findIndex(o => o.id === optionId);
+        if (optionIndex === -1) throw new Error('Option not found');
+
+        this.polls[pollIndex].options[optionIndex].votes =
+            this.polls[pollIndex].options[optionIndex].votes.filter(v => v.userId !== userId);
+
+        this.saveToStorage();
+        return this.polls[pollIndex];
+    }
+
     async finalizePoll(pollId: string, optionId: string): Promise<Rehearsal> {
         await this.delay();
         const poll = this.polls.find(p => p.id === pollId);
@@ -1428,6 +1449,206 @@ class LocalRepository implements IRepository {
         }
     }
 
+    // ============ EVENT SUBMISSIONS ============
+
+    async createEventSubmission(data: Omit<EventSubmission, 'id' | 'status' | 'createdAt' | 'updatedAt'>): Promise<EventSubmission> {
+        await this.delay();
+        console.log('📝 Creating Event Submission:', data);
+        const newSubmission: EventSubmission = {
+            ...data,
+            id: uuidv4(),
+            status: EventSubmissionStatus.PENDING,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            price: Number(data.price), // Ensure number
+            capacity: data.capacity ? Number(data.capacity) : undefined // Ensure number
+        };
+        this.eventSubmissions.push(newSubmission);
+        console.log('✅ Submission added. Total count:', this.eventSubmissions.length);
+
+        // Notify admins
+        const admins = this.users.filter(u => u.role === UserRole.ADMIN);
+        const submitter = this.users.find(u => u.id === data.submittedByUserId);
+        admins.forEach(admin => {
+            this.createNotification({
+                userId: admin.id,
+                type: 'event_submission',
+                title: 'בקשת אירוע חדשה',
+                body: `${submitter?.displayName || 'משתמש'} הגיש בקשה לאירוע: ${data.title}`,
+                relatedEntityType: 'event_submission',
+                relatedEntityId: newSubmission.id,
+            });
+        });
+
+        this.saveToStorage();
+        return newSubmission;
+    }
+
+    async getAllEventSubmissions(): Promise<EventSubmission[]> {
+        await this.delay();
+        console.log('📥 Getting all submissions. Count:', this.eventSubmissions.length);
+        return [...this.eventSubmissions].sort((a, b) => {
+            const dateA = new Date(a.createdAt).getTime();
+            const dateB = new Date(b.createdAt).getTime();
+            return dateB - dateA;
+        });
+    }
+
+    async getMyEventSubmissions(userId: string): Promise<EventSubmission[]> {
+        await this.delay();
+        return this.eventSubmissions
+            .filter(s => s.submittedByUserId === userId)
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+
+    async getPendingEventSubmissions(): Promise<EventSubmission[]> {
+        await this.delay();
+        return this.eventSubmissions
+            .filter(s => s.status === EventSubmissionStatus.PENDING)
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+
+    async approveEventSubmission(submissionId: string, adminUserId: string): Promise<Event> {
+        await this.delay();
+        const sub = this.eventSubmissions.find(s => s.id === submissionId);
+        if (!sub) throw new Error('Submission not found');
+
+        // Create the event
+        const durationMinutes = Math.round((sub.endAt.getTime() - sub.startAt.getTime()) / 60000);
+        const newEvent: Event = {
+            id: uuidv4(),
+            title: sub.title,
+            description: sub.description,
+            type: sub.type,
+            dateTime: sub.startAt,
+            durationMinutes,
+            location: sub.locationText,
+            coverImageUrl: sub.coverUrl,
+            capacity: sub.capacity,
+            price: sub.price,
+            organizerId: sub.submittedByUserId,
+            relatedBandIds: sub.relatedBandId ? [sub.relatedBandId] : undefined,
+            createdBy: adminUserId,
+            submissionId: sub.id,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+        this.events.push(newEvent);
+
+        // Update submission
+        sub.status = EventSubmissionStatus.APPROVED;
+        sub.approvedEventId = newEvent.id;
+        sub.updatedAt = new Date();
+
+        // Notify submitter
+        this.createNotification({
+            userId: sub.submittedByUserId,
+            type: 'event_approved',
+            title: 'האירוע שלך אושר! 🎉',
+            body: `האירוע "${sub.title}" אושר ומופיע כעת בלוח האירועים`,
+            relatedEntityType: 'event',
+            relatedEntityId: newEvent.id,
+        });
+
+        // Create auto feed post
+        this.posts.push({
+            id: uuidv4(),
+            type: PostType.SYSTEM_AUTO,
+            content: `🎶 אירוע חדש! "${sub.title}" נוסף ללוח האירועים. בואו להירשם!`,
+            isPinned: false,
+            systemEventType: 'event_approved',
+            relatedEntityId: newEvent.id,
+            likesCount: 0,
+            commentsCount: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        });
+
+        this.saveToStorage();
+        return newEvent;
+    }
+
+    async rejectEventSubmission(submissionId: string, reason: string): Promise<EventSubmission> {
+        await this.delay();
+        const sub = this.eventSubmissions.find(s => s.id === submissionId);
+        if (!sub) throw new Error('Submission not found');
+
+        sub.status = EventSubmissionStatus.REJECTED;
+        sub.rejectionReason = reason;
+        sub.updatedAt = new Date();
+
+        // Notify submitter
+        this.createNotification({
+            userId: sub.submittedByUserId,
+            type: 'event_rejected',
+            title: 'בקשת האירוע נדחתה',
+            body: `הבקשה "${sub.title}" נדחתה. סיבה: ${reason}`,
+            relatedEntityType: 'event_submission',
+            relatedEntityId: sub.id,
+        });
+
+        this.saveToStorage();
+        return sub;
+    }
+
+    async requestChangesOnSubmission(submissionId: string, note: string): Promise<EventSubmission> {
+        await this.delay();
+        const sub = this.eventSubmissions.find(s => s.id === submissionId);
+        if (!sub) throw new Error('Submission not found');
+
+        sub.status = EventSubmissionStatus.NEEDS_CHANGES;
+        sub.adminNote = note;
+        sub.updatedAt = new Date();
+
+        // Notify submitter
+        this.createNotification({
+            userId: sub.submittedByUserId,
+            type: 'event_needs_changes',
+            title: 'נדרשים שינויים באירוע',
+            body: `הבקשה "${sub.title}" דורשת תיקונים: ${note}`,
+            relatedEntityType: 'event_submission',
+            relatedEntityId: sub.id,
+        });
+
+        this.saveToStorage();
+        return sub;
+    }
+
+    async editAndApproveSubmission(
+        submissionId: string,
+        adminUserId: string,
+        edits: Partial<Pick<EventSubmission, 'title' | 'description' | 'type' | 'startAt' | 'endAt' | 'locationText' | 'capacity'>>
+    ): Promise<Event> {
+        await this.delay();
+        const sub = this.eventSubmissions.find(s => s.id === submissionId);
+        if (!sub) throw new Error('Submission not found');
+
+        // Apply edits to submission
+        Object.assign(sub, edits);
+        sub.updatedAt = new Date();
+
+        this.saveToStorage();
+
+        // Then approve (creates the event)
+        return this.approveEventSubmission(submissionId, adminUserId);
+    }
+
+    async resubmitEventSubmission(submissionId: string, data: Partial<EventSubmission>): Promise<EventSubmission> {
+        await this.delay();
+        const sub = this.eventSubmissions.find(s => s.id === submissionId);
+        if (!sub) throw new Error('Submission not found');
+
+        Object.assign(sub, data, {
+            status: EventSubmissionStatus.PENDING,
+            updatedAt: new Date(),
+            adminNote: undefined,
+            rejectionReason: undefined,
+        });
+
+        this.saveToStorage();
+        return sub;
+    }
+
     // Registrations
     async registerForEvent(eventId: string, userId: string, notes?: string): Promise<EventRegistration> {
         await this.delay();
@@ -1774,10 +1995,21 @@ class LocalRepository implements IRepository {
             if (availableMembers.length >= 2) { // At least 2 members available
                 const matchScore = Math.round((availableMembers.length / band.members.length) * 100);
 
+                // Find the best time slot — the one where most members are available
+                const timeSlotCounts: Record<string, number> = {};
+                slots.forEach(slot => {
+                    slot.timeSlots.forEach(ts => {
+                        if (ts.status === 'available') {
+                            timeSlotCounts[ts.start] = (timeSlotCounts[ts.start] || 0) + 1;
+                        }
+                    });
+                });
+                const bestTime = Object.entries(timeSlotCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '18:00';
+
                 suggestions.push({
                     id: uuidv4(),
                     bandId,
-                    dateTime: new Date(dateKey + ' 18:00'),
+                    dateTime: new Date(dateKey + ' ' + bestTime),
                     durationMinutes,
                     matchScore,
                     availableMembers,

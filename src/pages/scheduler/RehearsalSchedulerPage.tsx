@@ -175,10 +175,11 @@ export function RehearsalSchedulerPage() {
         }
 
         const key = `${date.toDateString()}-${slot.start}`;
-        const currentStatus = availability[key] || AvailabilityStatus.UNAVAILABLE;
+        const currentStatus = availability[key]; // undefined = not set yet
 
         let nextStatus: AvailabilityStatus;
         switch (currentStatus) {
+            case undefined: // Not set → available
             case AvailabilityStatus.UNAVAILABLE:
                 nextStatus = AvailabilityStatus.AVAILABLE;
                 break;
@@ -198,8 +199,10 @@ export function RehearsalSchedulerPage() {
                 return <Check className="status-available" size={16} />;
             case AvailabilityStatus.MAYBE:
                 return <HelpCircle className="status-maybe" size={16} />;
-            default:
+            case AvailabilityStatus.UNAVAILABLE:
                 return <X className="status-unavailable" size={16} />;
+            default:
+                return null; // Not set yet — neutral/empty
         }
     };
 
@@ -211,7 +214,10 @@ export function RehearsalSchedulerPage() {
             // Group availability by date
             const dateMap = new Map<string, AvailabilitySlot['timeSlots']>();
             Object.entries(availability).forEach(([key, status]) => {
-                const [dateStr, timeStart] = key.split('-');
+                // Key format: "Mon Feb 14 2026-09:00" — split at last '-'
+                const lastDash = key.lastIndexOf('-');
+                if (lastDash === -1) return;
+                const dateStr = key.substring(0, lastDash);
                 const slot = timeSlots.find(s => key.endsWith(s.start));
                 if (!slot) return;
 
@@ -361,6 +367,7 @@ export function RehearsalSchedulerPage() {
                                 poll={poll}
                                 usersMap={users}
                                 bandMembers={band.members}
+                                bandName={band.name || 'להקה'}
                                 onVote={loadData}
                                 isLeader={band.members.find(m => m.userId === user?.id)?.isLeader || false}
                             />

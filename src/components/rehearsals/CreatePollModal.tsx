@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import { localRepository } from '../../repositories/LocalRepository';
 import { RehearsalPoll } from '../../types';
 import './Rehearsals.css';
@@ -14,6 +15,7 @@ interface CreatePollModalProps {
 
 export function CreatePollModal({ isOpen, onClose, bandId, onPollCreated }: CreatePollModalProps) {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [loading, setLoading] = useState(false);
 
     // Default options - Use Local Time for initial values
@@ -52,7 +54,7 @@ export function CreatePollModal({ isOpen, onClose, bandId, onPollCreated }: Crea
         // Filter out empty options
         const validOptions = options.filter(o => o.dateTime);
         if (validOptions.length < 2) {
-            alert('נא להזין לפחות 2 אפשרויות תאריך/שעה');
+            showToast('נא להזין לפחות 2 אפשרויות תאריך/שעה', 'warning');
             return;
         }
 
@@ -75,7 +77,7 @@ export function CreatePollModal({ isOpen, onClose, bandId, onPollCreated }: Crea
             onClose();
         } catch (error) {
             console.error('Failed to create poll:', error);
-            alert('שגיאה ביצירת ההצבעה');
+            showToast('שגיאה ביצירת ההצבעה', 'error');
         } finally {
             setLoading(false);
         }

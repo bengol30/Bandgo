@@ -140,6 +140,7 @@ export function EditEventModal({ event, isOpen, onClose, onEventUpdated }: EditE
                                 <option value={EventType.JAM}>ג'אם</option>
                                 <option value={EventType.BAND_PERFORMANCE}>הופעה</option>
                                 <option value={EventType.SHARED_PERFORMANCE}>ערב להקות</option>
+                                <option value={EventType.OPEN_SESSION}>סשן פתוח</option>
                                 <option value={EventType.WORKSHOP}>סדנה</option>
                                 <option value={EventType.OTHER}>אחר</option>
                             </select>

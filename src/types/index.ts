@@ -83,8 +83,16 @@ export enum EventType {
     JAM = 'jam',
     BAND_PERFORMANCE = 'band_performance',
     SHARED_PERFORMANCE = 'shared_performance',
+    OPEN_SESSION = 'open_session',
     WORKSHOP = 'workshop',
     OTHER = 'other'
+}
+
+export enum EventSubmissionStatus {
+    PENDING = 'pending',
+    APPROVED = 'approved',
+    REJECTED = 'rejected',
+    NEEDS_CHANGES = 'needs_changes'
 }
 
 // ============ INTERFACES ============
@@ -439,6 +447,30 @@ export interface Event {
     isAccessible?: boolean;
     ticketLink?: string;
     ticketPrice?: number;
+    submissionId?: string; // Link back to original submission if created from one
+}
+
+export interface EventSubmission {
+    id: string;
+    submittedByUserId: string;
+    title: string;
+    type: EventType;
+    description: string;
+    startAt: Date;
+    endAt: Date;
+    locationText: string;
+    coverUrl?: string;
+    registrationEnabled: boolean;
+    capacity?: number;
+    price: number; // Default 0
+    relatedBandId?: string;
+    status: EventSubmissionStatus;
+    adminNote?: string;
+    rejectionReason?: string;
+    approvedEventId?: string;
+    hostUserId?: string; // For V2, defaults to submittedByUserId
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 export interface EventRegistration {

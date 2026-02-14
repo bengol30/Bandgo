@@ -9,13 +9,15 @@ import { Calendar, MapPin, Clock, Users, Ticket } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { localRepository } from '../../repositories/LocalRepository';
-import { Event, EventType, EventRegistration } from '../../types';
+import { Event, EventType, EventRegistration, EventSubmission, EventSubmissionStatus } from '../../types';
+import { CreateEventSubmissionModal } from '../../components/events/CreateEventSubmissionModal';
 import './Events.css';
 
 const eventTypeLabels: Record<EventType, string> = {
     [EventType.JAM]: "ג'אם",
     [EventType.BAND_PERFORMANCE]: 'הופעה',
     [EventType.SHARED_PERFORMANCE]: 'ערב להקות',
+    [EventType.OPEN_SESSION]: 'סשן פתוח',
     [EventType.WORKSHOP]: 'סדנה',
     [EventType.OTHER]: 'אירוע',
 };
@@ -24,6 +26,7 @@ const eventTypeClasses: Record<EventType, string> = {
     [EventType.JAM]: 'jam',
     [EventType.BAND_PERFORMANCE]: 'performance',
     [EventType.SHARED_PERFORMANCE]: 'performance',
+    [EventType.OPEN_SESSION]: 'jam',
     [EventType.WORKSHOP]: 'workshop',
     [EventType.OTHER]: 'jam',
 };
@@ -36,8 +39,11 @@ export function EventsPage() {
     const [events, setEvents] = useState<Event[]>([]);
     const [myRegistrations, setMyRegistrations] = useState<Set<string>>(new Set());
     const [registrationCounts, setRegistrationCounts] = useState<Record<string, number>>({});
+    const [mySubmissions, setMySubmissions] = useState<EventSubmission[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedType, setSelectedType] = useState<EventType | 'all'>('all');
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [viewMode, setViewMode] = useState<'events' | 'submissions'>('events');
 
     useEffect(() => {
         loadData();
@@ -57,10 +63,15 @@ export function EventsPage() {
             }
             setRegistrationCounts(counts);
 
-            // Load my registrations
+            setRegistrationCounts(counts);
+
+            // Load my registrations & submissions
             if (user) {
                 const myRegs = await localRepository.getMyEventRegistrations(user.id);
                 setMyRegistrations(new Set(myRegs.map(r => r.eventId)));
+
+                const mySubs = await localRepository.getMyEventSubmissions(user.id);
+                setMySubmissions(mySubs);
             }
         } catch (error) {
             console.error('Failed to load events:', error);
@@ -144,43 +155,106 @@ export function EventsPage() {
     }
 
     return (
-        <div className="page">
-            <div className="container">
-                {/* Header */}
-                <div className="page-header">
-                    <h1 className="page-title">אירועים</h1>
-                    <p className="page-subtitle">ג'אמים, הופעות ואירועים בסלון פטיפון</p>
+        <div className="page-container events-page">
+            <div className="page-header">
+                <div>
+                    <h1>לוח אירועים</h1>
+                    <p>ג'אמים, הופעות וסדנאות בקהילה</p>
                 </div>
-
-                {/* Filters */}
-                <div className="events-filters">
-                    <button
-                        className={`chip chip-selectable ${selectedType === 'all' ? 'chip-selected' : ''}`}
-                        onClick={() => setSelectedType('all')}
-                    >
-                        הכל
-                    </button>
-                    {Object.entries(eventTypeLabels).map(([type, label]) => (
+                {user && (
+                    <div className="flex gap-2">
                         <button
-                            key={type}
-                            className={`chip chip-selectable ${selectedType === type ? 'chip-selected' : ''}`}
-                            onClick={() => setSelectedType(type as EventType)}
+                            className={`btn ${viewMode === 'submissions' ? 'btn-secondary' : 'btn-ghost'}`}
+                            onClick={() => setViewMode(viewMode === 'events' ? 'submissions' : 'events')}
                         >
-                            {label}
+                            {viewMode === 'events' ? 'ההגשות שלי' : 'חזרה לאירועים'}
+                            {mySubmissions.length > 0 && <span className="badge badge-primary mr-2">{mySubmissions.length}</span>}
                         </button>
-                    ))}
-                </div>
-
-                {/* Events List */}
-                {filteredEvents.length === 0 ? (
-                    <div className="empty-state">
-                        <div className="empty-state-icon">📅</div>
-                        <h3 className="empty-state-title">אין אירועים קרובים</h3>
-                        <p className="empty-state-text">
-                            עקוב אחרי העדכונים לפרסום אירועים חדשים
-                        </p>
+                        <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
+                            + הוסף אירוע
+                        </button>
                     </div>
-                ) : (
+                )}
+            </div>
+
+            {viewMode === 'submissions' ? (
+                <div className="submissions-list">
+                    {mySubmissions.length === 0 ? (
+                        <div className="empty-state">
+                            <Calendar size={48} className="text-secondary mb-4" />
+                            <h3>אין לך הגשות עדיין</h3>
+                            <button className="btn btn-link" onClick={() => setShowCreateModal(true)}>
+                                הרשמת אירוע חדש?
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="grid gap-4">
+                            {mySubmissions.map(sub => (
+                                <div key={sub.id} className="card p-4 flex justify-between items-center">
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-2 h-12 rounded-full ${sub.status === 'approved' ? 'bg-success' :
+                                            sub.status === 'rejected' ? 'bg-error' :
+                                                sub.status === 'needs_changes' ? 'bg-warning' : 'bg-secondary'
+                                            }`}></div>
+                                        <div>
+                                            <h3 className="font-bold text-lg">{sub.title}</h3>
+                                            <div className="flex gap-4 text-sm text-secondary">
+                                                <span>{new Date(sub.startAt).toLocaleDateString()}</span>
+                                                <span>{eventTypeLabels[sub.type]}</span>
+                                            </div>
+                                            {sub.adminNote && (
+                                                <p className="text-warning text-sm mt-1">הערת מנהל: {sub.adminNote}</p>
+                                            )}
+                                            {sub.rejectionReason && (
+                                                <p className="text-error text-sm mt-1">סיבת דחייה: {sub.rejectionReason}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col items-end">
+                                        <span className={`badge ${sub.status === 'approved' ? 'badge-success' :
+                                            sub.status === 'rejected' ? 'badge-error' :
+                                                sub.status === 'needs_changes' ? 'badge-warning' : 'badge-secondary'
+                                            }`}>
+                                            {sub.status === 'approved' && 'אושר'}
+                                            {sub.status === 'rejected' && 'נדחה'}
+                                            {sub.status === 'needs_changes' && 'נדרש תיקון'}
+                                            {sub.status === 'pending' && 'ממתין'}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <>
+                    <div className="events-filters">
+                        <button
+                            className={`chip chip-selectable ${selectedType === 'all' ? 'chip-selected' : ''}`}
+                            onClick={() => setSelectedType('all')}
+                        >
+                            הכל
+                        </button>
+                        {Object.entries(eventTypeLabels).map(([type, label]) => (
+                            <button
+                                key={type}
+                                className={`chip chip-selectable ${selectedType === type ? 'chip-selected' : ''}`}
+                                onClick={() => setSelectedType(type as EventType)}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Events List */}
+                    {filteredEvents.length === 0 && (
+                        <div className="empty-state">
+                            <Calendar size={48} className="text-secondary opacity-50 mb-4" />
+                            <h3>אין אירועים כרגע</h3>
+                            <p>נסה לשנות את הסינון או חזור מאוחר יותר</p>
+                        </div>
+                    )}
+
                     <div className="grid">
                         {filteredEvents.map(event => {
                             const dateInfo = formatDate(event.dateTime);
@@ -246,8 +320,14 @@ export function EventsPage() {
                             );
                         })}
                     </div>
-                )}
-            </div>
+                </>
+            )}
+
+            <CreateEventSubmissionModal
+                isOpen={showCreateModal}
+                onClose={() => setShowCreateModal(false)}
+                onSubmitted={loadData}
+            />
         </div>
     );
 }

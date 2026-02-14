@@ -11,22 +11,31 @@ interface PollCardProps {
     poll: RehearsalPoll;
     usersMap: Record<string, User>;
     bandMembers: BandMember[];
+    bandName: string;
     onVote: () => void; // Trigger reload
     isLeader: boolean;
 }
 
-export function PollCard({ poll, usersMap, bandMembers, onVote, isLeader }: PollCardProps) {
+export function PollCard({ poll, usersMap, bandMembers, bandName, onVote, isLeader }: PollCardProps) {
     const { user } = useAuth();
     const [finalizing, setFinalizing] = React.useState<string | null>(null);
 
     const handleVote = async (optionId: string, canAttend: boolean) => {
         if (!user) return;
         try {
-            await localRepository.voteOnPoll(poll.id, optionId, user.id, canAttend);
+            // Toggle: if user already voted the same, remove the vote
+            const option = poll.options.find(o => o.id === optionId);
+            const existingVote = option?.votes.find(v => v.userId === user.id);
+            if (existingVote && existingVote.canAttend === canAttend) {
+                // Remove vote
+                await localRepository.removeVoteFromPoll(poll.id, optionId, user.id);
+            } else {
+                await localRepository.voteOnPoll(poll.id, optionId, user.id, canAttend);
+            }
             onVote();
         } catch (error) {
             console.error('Vote failed:', error);
-            alert('שגיאה בהצבעה');
+            showToast('שגיאה בהצבעה', 'error');
         }
     };
 
@@ -61,7 +70,7 @@ ${poll.options.map((opt, i) => `${i + 1}. ${new Date(opt.dateTime).toLocaleDateS
             // SYNC TO GOOGLE: If connected, create an event
             if (googleCalendarService.isConnected()) {
                 await googleCalendarService.createEvent(
-                    `חזרת להקה למועד שנקבע`, // Could be improved with actual band name but would need to pass it
+                    `חזרת להקה: ${bandName}`,
                     new Date(option.dateTime),
                     option.durationMinutes,
                     poll.location
@@ -135,29 +144,16 @@ ${poll.options.map((opt, i) => `${i + 1}. ${new Date(opt.dateTime).toLocaleDateS
                                         />
                                     ))}
                                     {yesVotes.length > 5 && <span className="more-voters">+{yesVotes.length - 5}</span>}
-
-                                    {/* Waiting for indicator (simple version: count how many haven't voted) */}
-                                    {usersMap && Object.values(usersMap).map(u => {
-                                        // This is tricky because we need to know who OUGHT to vote (band members)
-                                        // But PollCard only blindly gets usersMap.
-                                        // Ideally we check if they are in the band.
-                                        // For now, let's just assume we want to show if *I* haven't voted yet? 
-                                        // Or maybe just show nothing if no one voted yes.
-                                        return null;
-                                    })}
                                 </div>
                                 <div className="waiting-list" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
                                     {(() => {
-                                        // Calculate who hasn't voted
                                         const votedUserIds = option.votes.map(v => v.userId);
-                                        // We need the band members list to know who is missing.
-                                        // Passed props don't have band members list, just usersMap.
-                                        // We can infer relevant users from usersMap if we assume it contains band members.
-
-                                        // For this iteration, let's just show "Waiting for vote" if current user hasn't voted.
-                                        const myVote = option.votes.find(v => v.userId === user?.id);
-                                        if (!myVote) return <span style={{ color: 'var(--warning)' }}>טרם הצבעת!</span>;
-                                        return null;
+                                        const notVoted = bandMembers.filter(m => !votedUserIds.includes(m.userId));
+                                        if (notVoted.length > 0) {
+                                            const names = notVoted.map(m => usersMap[m.userId]?.displayName || 'לא ידוע').join(', ');
+                                            return <span style={{ color: 'var(--warning)' }}>ממתינים ל: {names}</span>;
+                                        }
+                                        return <span style={{ color: 'var(--color-success)' }}>כולם הצביעו! ✅</span>;
                                     })()}
                                 </div>
                             </div>
