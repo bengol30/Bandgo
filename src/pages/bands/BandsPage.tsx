@@ -1,7 +1,3 @@
-// ============================================
-// bandgo - Unified Bands Page
-// ============================================
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
@@ -37,7 +33,7 @@ export function BandsPage() {
     const [bands, setBands] = useState<Band[]>([]);
     const [requests, setRequests] = useState<BandRequest[]>([]);
     const [users, setUsers] = useState<Record<string, User>>({});
-    const [userBand, setUserBand] = useState<Band | null>(null); // User's own active band
+    const [userBands, setUserBands] = useState<Band[]>([]); // User's bands
 
     // Filters
     const [searchQuery, setSearchQuery] = useState('');
@@ -67,12 +63,12 @@ export function BandsPage() {
             setBands(bandsData);
             setRequests(requestsData);
 
-            // Find user's own band (where they are a leader)
+            // Find user's bands
             if (user) {
-                const myBand = bandsData.find(band =>
-                    band.members?.some(m => m.userId === user.id && m.isLeader)
+                const myBands = bandsData.filter(band =>
+                    band.members?.some(m => m.userId === user.id)
                 );
-                setUserBand(myBand || null);
+                setUserBands(myBands);
             }
 
             const usersMap: Record<string, User> = {};
@@ -91,11 +87,13 @@ export function BandsPage() {
     };
 
     const handleCreate = () => {
-        if (currentView === 'hiring') {
-            navigate('/requests/new');
-        } else {
-            // Future feature: Register existing band
-            showToast('הרשמת להקה קיימת תהיה זמינה בקרוב', 'info');
+        navigate('/requests/new');
+    };
+
+    const scrollToMyBands = () => {
+        const element = document.getElementById('my-bands-section');
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
         }
     };
 
@@ -151,7 +149,7 @@ export function BandsPage() {
             if (searchQuery) {
                 const q = searchQuery.toLowerCase();
                 const name = 'name' in item ? (item as Band).name : (item as BandRequest).title;
-                const desc = item.description || '';
+                const desc = (item as any).description || '';
                 return (name || '').toLowerCase().includes(q) || desc.toLowerCase().includes(q);
             }
 
@@ -177,19 +175,59 @@ export function BandsPage() {
                         <h1 className="page-title">להקות והרכבים</h1>
                         <p className="page-subtitle">מצא את השותפים המוזיקליים הבאים שלך</p>
                     </div>
-                    {userBand ? (
-                        <button className="new-band-btn" onClick={() => navigate(`/bands/${userBand.id}`)}>
-                            <Users size={20} />
-                            <span>עמוד הלהקה שלי</span>
-                        </button>
+                    {userBands.length > 0 ? (
+                        <div className="header-actions">
+                            {userBands.length === 1 ? (
+                                <button className="new-band-btn" onClick={() => navigate(`/bands/${userBands[0].id}/workspace`)}>
+                                    <Users size={20} />
+                                    <span>הלהקה שלי</span>
+                                </button>
+                            ) : (
+                                <button className="new-band-btn" onClick={scrollToMyBands}>
+                                    <Users size={20} />
+                                    <span>הלהקות שלי ({userBands.length})</span>
+                                </button>
+                            )}
+                        </div>
                     ) : (
-                        <button className="new-band-btn" onClick={() => navigate('/requests/new')}>
+                        <button className="new-band-btn" onClick={handleCreate}>
                             <Plus size={20} />
                             <span>צור להקה חדשה</span>
                         </button>
                     )}
                 </div>
             </header>
+
+            {/* My Bands Section (Visible if user has bands) */}
+            {userBands.length > 0 && (
+                <div id="my-bands-section" className="my-bands-section">
+                    <div className="section-header">
+                        <h2 className="section-title-small">הלהקות שלי</h2>
+                        <button className="btn-text" onClick={handleCreate}>
+                            <Plus size={16} />
+                            <span>להקה חדשה</span>
+                        </button>
+                    </div>
+                    <div className="my-bands-scroll">
+                        {userBands.map(band => (
+                            <Link key={band.id} to={`/bands/${band.id}/workspace`} className="my-band-card-mini">
+                                <div className="mini-cover">
+                                    {band.coverImageUrl ? (
+                                        <img src={band.coverImageUrl} alt={band.name} />
+                                    ) : (
+                                        <Music size={24} />
+                                    )}
+                                </div>
+                                <div className="mini-info">
+                                    <h3>{band.name}</h3>
+                                    <span>{band.members.length} חברים</span>
+                                </div>
+                                <ChevronDown size={16} style={{ transform: 'rotate(90deg)', opacity: 0.5 }} />
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Controls Bar (Sticky) */}
             <div className="bands-controls">
@@ -351,15 +389,9 @@ export function BandsPage() {
             </div>
 
             {/* Floating Action Button */}
-            {userBand ? (
-                <button className="create-fab" onClick={() => navigate(`/bands/${userBand.id}`)} title="עמוד הלהקה שלי">
-                    <Users size={24} />
-                </button>
-            ) : (
-                <button className="create-fab" onClick={handleCreate} title="צור להקה חדשה">
-                    <Plus size={24} />
-                </button>
-            )}
+            <button className="create-fab" onClick={handleCreate} title="צור להקה חדשה">
+                <Plus size={24} />
+            </button>
         </div>
     );
 }

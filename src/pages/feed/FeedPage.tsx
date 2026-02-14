@@ -4,6 +4,7 @@
 // ============================================
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Heart, MessageCircle, Share2, MoreHorizontal, Image, Send, Pin, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -26,9 +27,18 @@ export function FeedPage() {
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const [searchParams] = useSearchParams();
+    const deepLinkPostId = searchParams.get('postId');
+
     useEffect(() => {
         loadData();
     }, []);
+
+    useEffect(() => {
+        if (deepLinkPostId) {
+            setActivePostId(deepLinkPostId);
+        }
+    }, [deepLinkPostId]);
 
     const loadData = async () => {
         try {

@@ -175,3 +175,79 @@
     gap: 1rem;
     background: var(--bg-card);
 }
+
+/* Danger Zone */
+.danger-zone {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 2px solid rgba(239, 68, 68, 0.3);
+}
+
+.danger-zone-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--error-color, #ef4444);
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.danger-zone-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: rgba(239, 68, 68, 0.04);
+    border: 1px solid rgba(239, 68, 68, 0.15);
+    border-radius: var(--radius-md);
+    margin-bottom: 0.75rem;
+}
+
+.danger-zone-info strong {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    margin-bottom: 0.2rem;
+}
+
+.danger-zone-info p {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0;
+    max-width: 240px;
+}
+
+.btn-outline-danger {
+    background: transparent;
+    color: var(--error-color, #ef4444);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.btn-outline-danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: var(--error-color, #ef4444);
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 0.5rem;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

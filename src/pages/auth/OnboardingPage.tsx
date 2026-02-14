@@ -61,7 +61,7 @@ export function OnboardingPage() {
                     </p>
                     <div className="onboarding-tagline">
                         <Sparkles size={16} />
-                        <span>כמו טינדר למוזיקאים</span>
+                        <span>כמו טינדר להרכבים</span>
                     </div>
                 </div>
 

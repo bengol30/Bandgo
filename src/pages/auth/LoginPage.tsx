@@ -54,7 +54,7 @@ export function LoginPage() {
                 <div className="login-header">
                     <div className="login-logo">🎸</div>
                     <h1>התחברות</h1>
-                    <p className="text-lg" style={{ color: 'var(--color-text-primary)', opacity: 0.9 }}>גלה את להקת החלומות שלך</p>
+                    <p className="text-lg" style={{ color: 'var(--color-text-primary)', opacity: 0.9 }}>כמו טינדר להרכבים</p>
                 </div>
 
                 {/* Social Login Mocks */}

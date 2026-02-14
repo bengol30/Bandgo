@@ -92,11 +92,20 @@ class LocalRepository implements IRepository {
 
     constructor() {
         this.loadFromStorage();
+
+        // Listen for cross-tab updates
+        if (typeof window !== 'undefined') {
+            window.addEventListener('storage', (e) => {
+                if (e.key === this.STORAGE_KEY) {
+                    console.log('🔄 Data changed in another tab, reloading...');
+                    this.loadFromStorage();
+                }
+            });
+        }
     }
 
     private loadFromStorage() {
         try {
-            // Load current user
             const savedUserId = localStorage.getItem(this.AUTH_KEY);
             if (savedUserId) {
                 this.currentUserId = savedUserId;
@@ -105,8 +114,8 @@ class LocalRepository implements IRepository {
             const data = localStorage.getItem(this.STORAGE_KEY);
             if (data) {
                 const parsed = JSON.parse(data, this.dateTimeReviver);
-                this.users = parsed.users || [];
 
+                this.users = parsed.users || [];
                 // Merge mockUsers that don't exist in localStorage yet
                 mockUsers.forEach(mockUser => {
                     if (!this.users.find(u => u.id === mockUser.id || u.email === mockUser.email)) {
@@ -115,8 +124,6 @@ class LocalRepository implements IRepository {
                 });
 
                 this.bandRequests = parsed.bandRequests || [];
-
-                // Merge mockBandRequests that don't exist
                 mockBandRequests.forEach(mockReq => {
                     if (!this.bandRequests.find(r => r.id === mockReq.id)) {
                         this.bandRequests.push(mockReq);
@@ -140,19 +147,13 @@ class LocalRepository implements IRepository {
                 this.settings = parsed.settings || mockSettings;
                 this.chatMessages = parsed.chatMessages || [];
                 this.reports = parsed.reports || [...mockReports];
-
-                // Load or init conversations
                 this.conversations = parsed.conversations || [...mockConversations];
                 this.directMessages = parsed.directMessages || [...mockDirectMessages];
-
-                console.log('📦 Data loaded and merged with mock data from localStorage');
-                this.saveToStorage();
             } else {
                 this.resetToDefaults();
             }
         } catch (error) {
-            console.error('Failed to load from storage, resetting to defaults', error);
-            this.resetToDefaults();
+            console.error('Failed to load data', error);
         }
     }
 
@@ -259,6 +260,7 @@ class LocalRepository implements IRepository {
             ...data,
             updatedAt: new Date(),
         };
+        this.saveToStorage();
         return this.users[index];
     }
 
@@ -271,6 +273,11 @@ class LocalRepository implements IRepository {
     async getAllUsers(): Promise<User[]> {
         await this.delay();
         return [...this.users];
+    }
+
+    async getUsersByIds(userIds: string[]): Promise<User[]> {
+        await this.delay();
+        return this.users.filter(u => userIds.includes(u.id));
     }
 
     async deleteUser(userId: string): Promise<void> {
@@ -361,6 +368,7 @@ class LocalRepository implements IRepository {
             updatedAt: new Date(),
         };
         this.bandRequests.push(newRequest);
+        this.saveToStorage(); // Added this line
 
         // Create auto post
         this.createAutoPost('band_request_created', newRequest.id,
@@ -381,6 +389,7 @@ class LocalRepository implements IRepository {
             ...data,
             updatedAt: new Date(),
         };
+        this.saveToStorage();
         return this.bandRequests[index];
     }
 
@@ -390,6 +399,7 @@ class LocalRepository implements IRepository {
         if (index !== -1) {
             this.bandRequests[index].status = BandRequestStatus.CLOSED;
             this.bandRequests[index].updatedAt = new Date();
+            this.saveToStorage();
         }
     }
 
@@ -409,6 +419,11 @@ class LocalRepository implements IRepository {
         return this.applications.filter(a => a.applicantId === userId);
     }
 
+    async getAllApplications(): Promise<BandApplication[]> {
+        await this.delay();
+        return [...this.applications];
+    }
+
     async createApplication(data: Omit<BandApplication, 'id' | 'createdAt'>): Promise<BandApplication> {
         await this.delay();
         const newApplication: BandApplication = {
@@ -424,13 +439,16 @@ class LocalRepository implements IRepository {
         const applicant = this.users.find(u => u.id === data.applicantId);
 
         if (bandRequest && applicant) {
+            // Check if there is an active band for this request
+            const band = this.bands.find(b => b.originalBandRequestId === data.bandRequestId);
+
             this.createNotification({
                 userId: bandRequest.creatorId,
                 type: 'application_received',
                 title: 'בקשת הצטרפות חדשה',
                 body: `${applicant.displayName} הגיש/ה בקשה להצטרף להרכב שלך`,
-                relatedEntityType: 'application',
-                relatedEntityId: newApplication.id,
+                relatedEntityType: band ? 'band' : 'band_request',
+                relatedEntityId: band ? band.id : bandRequest.id,
             });
         }
 
@@ -449,6 +467,25 @@ class LocalRepository implements IRepository {
             reviewedAt: new Date(),
             reviewNote: note,
         };
+
+        // Notify applicant
+        const app = this.applications[index];
+        const bandRequest = this.bandRequests.find(br => br.id === app.bandRequestId);
+        const bandName = bandRequest?.title || 'הלהקה';
+
+        // Find if band exists to link correctly
+        const band = this.bands.find(b => b.originalBandRequestId === app.bandRequestId);
+
+        this.createNotification({
+            userId: app.applicantId,
+            type: status === 'approved' ? 'application_approved' : 'application_rejected',
+            title: status === 'approved' ? 'בקשתך אושרה! 🎉' : 'עדכון לגבי בקשתך',
+            body: status === 'approved'
+                ? `התקבלת ל-${bandName}! לחץ כדי לראות את פרטי ההרכב.`
+                : `בקשתך להצטרף ל-${bandName} נדחתה.`,
+            relatedEntityType: status === 'approved' && band ? 'band' : 'band_request',
+            relatedEntityId: status === 'approved' && band ? band.id : app.bandRequestId,
+        });
 
         // If approved, add member to band request
         if (status === 'approved') {
@@ -503,7 +540,7 @@ class LocalRepository implements IRepository {
         return this.bands.filter(b => b.members.some(m => m.userId === userId));
     }
 
-    async formBand(bandRequestId: string, name?: string): Promise<Band> {
+    async convertRequestToBand(bandRequestId: string, name?: string): Promise<Band> {
         await this.delay();
         const bandRequest = this.bandRequests.find(br => br.id === bandRequestId);
         if (!bandRequest) throw new Error('Band request not found');
@@ -534,7 +571,7 @@ class LocalRepository implements IRepository {
 
         const newBand: Band = {
             id: uuidv4(),
-            name,
+            name: name || bandRequest.title || 'להקה חדשה',
             genres: bandRequest.genres,
             city: bandRequest.city,
             region: bandRequest.region,
@@ -542,9 +579,23 @@ class LocalRepository implements IRepository {
             originalBandRequestId: bandRequestId,
             approvedRehearsalsCount: 0,
             rehearsalGoal: this.settings.rehearsalGoal,
+            tasks: [],
             createdAt: new Date(),
             updatedAt: new Date(),
         };
+
+        // Create initial tasks if needed
+        if (bandRequest.sketchPending || (!bandRequest.sketches || bandRequest.sketches.length === 0)) {
+            newBand.tasks!.push({
+                id: uuidv4(),
+                bandId: newBand.id,
+                type: 'UPLOAD_DEMOS',
+                status: 'pending',
+                title: 'העלאת סקיצות',
+                description: 'יש להעלות לפחות 2-3 סקיצות כדי להשלים את פרופיל הלהקה ולהתחיל לקבוע הופעות.',
+                createdAt: new Date()
+            });
+        }
 
         this.bands.push(newBand);
 
@@ -556,11 +607,66 @@ class LocalRepository implements IRepository {
 
         // Create auto post
         this.createAutoPost('band_formed', newBand.id,
-            `🎸 להקה חדשה התגבשה: "${name || 'להקה חדשה'}"!`
+            `🎸 להקה חדשה התגבשה: "${newBand.name}"!`
         );
 
+        this.saveToStorage();
         return newBand;
     }
+
+    async formBand(bandRequestId: string, name?: string): Promise<Band> {
+        return this.convertRequestToBand(bandRequestId, name);
+    }
+
+    // ============ TASKS ============
+    async createTask(bandId: string, task: Omit<import('../types').Task, 'id' | 'createdAt' | 'bandId'>): Promise<import('../types').Task> {
+        await this.delay();
+        const bandIndex = this.bands.findIndex(b => b.id === bandId);
+        if (bandIndex === -1) throw new Error('Band not found');
+
+        const newTask: import('../types').Task = {
+            ...task,
+            id: uuidv4(),
+            bandId,
+            createdAt: new Date(),
+        };
+
+        if (!this.bands[bandIndex].tasks) {
+            this.bands[bandIndex].tasks = [];
+        }
+        this.bands[bandIndex].tasks!.push(newTask);
+        this.saveToStorage();
+        return newTask;
+    }
+
+    async updateTask(bandId: string, taskId: string, updates: Partial<import('../types').Task>): Promise<import('../types').Task> {
+        await this.delay();
+        const bandIndex = this.bands.findIndex(b => b.id === bandId);
+        if (bandIndex === -1) throw new Error('Band not found');
+
+        const tasks = this.bands[bandIndex].tasks || [];
+        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        if (taskIndex === -1) throw new Error('Task not found');
+
+        this.bands[bandIndex].tasks![taskIndex] = {
+            ...tasks[taskIndex],
+            ...updates,
+            completedAt: updates.status === 'completed' && !tasks[taskIndex].completedAt ? new Date() : tasks[taskIndex].completedAt
+        };
+
+        this.saveToStorage();
+        return this.bands[bandIndex].tasks![taskIndex];
+    }
+
+    async getBandTasks(bandId: string): Promise<import('../types').Task[]> {
+        await this.delay();
+        const band = this.bands.find(b => b.id === bandId);
+        return band?.tasks?.sort((a, b) => {
+            if (a.status === b.status) return b.createdAt.getTime() - a.createdAt.getTime();
+            return a.status === 'pending' ? -1 : 1;
+        }) || [];
+    }
+
 
     async updateBand(id: string, data: Partial<Band>): Promise<Band> {
         await this.delay();
@@ -574,6 +680,59 @@ class LocalRepository implements IRepository {
         };
         this.saveToStorage();
         return this.bands[index];
+    }
+
+    async leaveBand(bandId: string, userId: string): Promise<{ deleted: boolean }> {
+        await this.delay();
+        const index = this.bands.findIndex(b => b.id === bandId);
+        if (index === -1) throw new Error('Band not found');
+
+        const band = this.bands[index];
+        const memberIndex = band.members.findIndex(m => m.userId === userId);
+        if (memberIndex === -1) throw new Error('User is not a member of this band');
+
+        // Remove the member
+        band.members.splice(memberIndex, 1);
+
+        // If the leaving member was the leader, promote the next member
+        if (band.members.length > 0) {
+            const hasLeader = band.members.some(m => m.isLeader);
+            if (!hasLeader) {
+                band.members[0].isLeader = true;
+            }
+        }
+
+        // If no members left, delete the band entirely
+        if (band.members.length === 0) {
+            this.bands.splice(index, 1);
+            // Clean up related data (tasks are inside band.tasks, deleted with the band)
+            this.songs = this.songs.filter(s => s.bandId !== bandId);
+            this.rehearsals = this.rehearsals.filter(r => r.bandId !== bandId);
+            this.saveToStorage();
+            return { deleted: true };
+        }
+
+        band.updatedAt = new Date();
+        this.saveToStorage();
+        return { deleted: false };
+    }
+
+    async deleteBand(bandId: string, requestingUserId: string): Promise<void> {
+        await this.delay();
+        const index = this.bands.findIndex(b => b.id === bandId);
+        if (index === -1) throw new Error('Band not found');
+
+        const band = this.bands[index];
+        const leader = band.members.find(m => m.isLeader);
+        if (!leader || leader.userId !== requestingUserId) {
+            throw new Error('Only the band leader can delete the band');
+        }
+
+        // Remove band and all related data (tasks are inside band.tasks, deleted with the band)
+        this.bands.splice(index, 1);
+        this.songs = this.songs.filter(s => s.bandId !== bandId);
+        this.rehearsals = this.rehearsals.filter(r => r.bandId !== bandId);
+        this.saveToStorage();
     }
 
     async getBandProgress(bandId: string): Promise<BandProgress> {
@@ -675,13 +834,14 @@ class LocalRepository implements IRepository {
                         type: 'poll_created',
                         title: 'הצבעה חדשה לחזרה',
                         body: 'נוספה הצבעה חדשה לקביעת חזרה',
-                        relatedEntityType: 'poll',
-                        relatedEntityId: newPoll.id,
+                        relatedEntityType: 'band',
+                        relatedEntityId: newPoll.bandId,
                     });
                 }
             });
         }
 
+        this.saveToStorage();
         return newPoll;
     }
 
@@ -756,8 +916,8 @@ class LocalRepository implements IRepository {
                     type: 'rehearsal_scheduled',
                     title: 'חזרה נקבעה!',
                     body: `חזרה נקבעה ל-${option.dateTime.toLocaleDateString('he-IL')}`,
-                    relatedEntityType: 'rehearsal',
-                    relatedEntityId: newRehearsal.id,
+                    relatedEntityType: 'band',
+                    relatedEntityId: poll.bandId,
                 });
             });
         }
@@ -778,6 +938,7 @@ class LocalRepository implements IRepository {
             completionSubmittedAt: new Date(),
         };
 
+        this.saveToStorage();
         return this.rehearsals[index];
     }
 
@@ -800,6 +961,7 @@ class LocalRepository implements IRepository {
             this.bands[bandIndex].approvedRehearsalsCount++;
         }
 
+        this.saveToStorage();
         return this.rehearsals[index];
     }
 
@@ -816,6 +978,7 @@ class LocalRepository implements IRepository {
             adminNote: note,
         };
 
+        this.saveToStorage();
         return this.rehearsals[index];
     }
 
@@ -829,6 +992,7 @@ class LocalRepository implements IRepository {
             status: RehearsalStatus.CANCELLED,
         };
 
+        this.saveToStorage();
         return this.rehearsals[index];
     }
 
@@ -852,6 +1016,25 @@ class LocalRepository implements IRepository {
             updatedAt: new Date(),
         };
         this.songs.push(newSong);
+
+        // Notify band members
+        const band = this.bands.find(b => b.id === data.bandId);
+        if (band) {
+            band.members.forEach(member => {
+                if (member.userId !== this.currentUserId) {
+                    this.createNotification({
+                        userId: member.userId,
+                        type: 'new_song',
+                        title: 'שיר חדש נוסף! 🎵',
+                        body: `נוסף שיר חדש "${newSong.title}" לרשימת השירים.`,
+                        relatedEntityType: 'band',
+                        relatedEntityId: band.id,
+                    });
+                }
+            });
+        }
+
+        this.saveToStorage();
         return newSong;
     }
 
@@ -865,6 +1048,7 @@ class LocalRepository implements IRepository {
             ...data,
             updatedAt: new Date(),
         };
+        this.saveToStorage();
         return this.songs[index];
     }
 
@@ -873,6 +1057,7 @@ class LocalRepository implements IRepository {
         const index = this.songs.findIndex(s => s.id === id);
         if (index !== -1) {
             this.songs.splice(index, 1);
+            this.saveToStorage();
         }
     }
 
@@ -990,6 +1175,7 @@ class LocalRepository implements IRepository {
             updatedAt: new Date(),
         };
         this.posts.unshift(newPost);
+        this.saveToStorage();
         return newPost;
     }
 
@@ -998,6 +1184,7 @@ class LocalRepository implements IRepository {
         const index = this.posts.findIndex(p => p.id === id);
         if (index !== -1) {
             this.posts.splice(index, 1);
+            this.saveToStorage();
         }
     }
 
@@ -1007,6 +1194,7 @@ class LocalRepository implements IRepository {
         if (index === -1) throw new Error('Post not found');
 
         this.posts[index].isPinned = true;
+        this.saveToStorage();
         return this.posts[index];
     }
 
@@ -1033,8 +1221,23 @@ class LocalRepository implements IRepository {
             const postIndex = this.posts.findIndex(p => p.id === postId);
             if (postIndex !== -1) {
                 this.posts[postIndex].likesCount++;
+
+                // Notify post author
+                const post = this.posts[postIndex];
+                if (post.authorId && post.authorId !== userId) {
+                    const liker = this.users.find(u => u.id === userId);
+                    this.createNotification({
+                        userId: post.authorId,
+                        type: 'like',
+                        title: 'לייק חדש ❤️',
+                        body: `${liker?.displayName || 'מישהו'} אהב/ה את הפוסט שלך`,
+                        relatedEntityType: 'post',
+                        relatedEntityId: post.id,
+                    });
+                }
             }
         }
+        this.saveToStorage();
     }
 
     async unlikePost(postId: string, userId: string): Promise<void> {
@@ -1046,6 +1249,7 @@ class LocalRepository implements IRepository {
             if (postIndex !== -1) {
                 this.posts[postIndex].likesCount = Math.max(0, this.posts[postIndex].likesCount - 1);
             }
+            this.saveToStorage();
         }
     }
 
@@ -1075,8 +1279,23 @@ class LocalRepository implements IRepository {
         const postIndex = this.posts.findIndex(p => p.id === data.postId);
         if (postIndex !== -1) {
             this.posts[postIndex].commentsCount++;
+
+            // Notify post author
+            const post = this.posts[postIndex];
+            if (post.authorId && post.authorId !== data.authorId) {
+                const commenter = this.users.find(u => u.id === data.authorId);
+                this.createNotification({
+                    userId: post.authorId,
+                    type: 'comment',
+                    title: 'תגובה חדשה 💬',
+                    body: `${commenter?.displayName || 'מישהו'} הגיב/ה לפוסט שלך: "${data.content.substring(0, 30)}${data.content.length > 30 ? '...' : ''}"`,
+                    relatedEntityType: 'post',
+                    relatedEntityId: post.id,
+                });
+            }
         }
 
+        this.saveToStorage();
         return newComment;
     }
 
@@ -1091,6 +1310,7 @@ class LocalRepository implements IRepository {
             if (postIndex !== -1) {
                 this.posts[postIndex].commentsCount = Math.max(0, this.posts[postIndex].commentsCount - 1);
             }
+            this.saveToStorage();
         }
     }
 
@@ -1125,6 +1345,7 @@ class LocalRepository implements IRepository {
             }
         });
 
+        this.saveToStorage();
         return newPost;
     }
 
@@ -1143,6 +1364,7 @@ class LocalRepository implements IRepository {
             updatedAt: new Date(),
         };
         this.posts.unshift(newPost);
+        this.saveToStorage();
     }
 
     // ============ EVENTS ============
@@ -1193,6 +1415,7 @@ class LocalRepository implements IRepository {
             ...data,
             updatedAt: new Date(),
         };
+        this.saveToStorage();
         return this.events[index];
     }
 
@@ -1201,6 +1424,7 @@ class LocalRepository implements IRepository {
         const index = this.events.findIndex(e => e.id === id);
         if (index !== -1) {
             this.events.splice(index, 1);
+            this.saveToStorage();
         }
     }
 
@@ -1222,6 +1446,7 @@ class LocalRepository implements IRepository {
             createdAt: new Date(),
         };
         this.eventRegistrations.push(newReg);
+        this.saveToStorage();
         return newReg;
     }
 
@@ -1232,6 +1457,7 @@ class LocalRepository implements IRepository {
         );
         if (index !== -1) {
             this.eventRegistrations[index].status = 'cancelled';
+            this.saveToStorage();
         }
     }
 

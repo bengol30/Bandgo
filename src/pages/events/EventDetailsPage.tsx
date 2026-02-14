@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Clock, Users, ArrowRight, Share2, Ticket, Music, Check } from 'lucide-react';
+import { Calendar, MapPin, Clock, Users, ArrowRight, Share2, Ticket, Music, Check, Edit2, Shield, ExternalLink, MessageCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { localRepository } from '../../repositories/LocalRepository';
 import { Event, EventRegistration, User } from '../../types';
 import { useToast } from '../../contexts/ToastContext';
+import { EditEventModal } from '../../components/events/EditEventModal';
 import './EventDetails.css';
 
 export function EventDetailsPage() {
@@ -18,6 +19,7 @@ export function EventDetailsPage() {
     const [loading, setLoading] = useState(true);
     const [registering, setRegistering] = useState(false);
     const [userRegistration, setUserRegistration] = useState<EventRegistration | null>(null);
+    const [showEditModal, setShowEditModal] = useState(false);
 
     useEffect(() => {
         if (id) loadData();
@@ -101,7 +103,18 @@ export function EventDetailsPage() {
                         </button>
                         <div className="event-hero-content">
                             <span className="event-type-badge">{event.type}</span>
-                            <h1 className="event-title">{event.title}</h1>
+                            <div className="flex justify-between items-start">
+                                <h1 className="event-title">{event.title}</h1>
+                                {user && (user.id === event.organizerId || user.role === 'admin') && (
+                                    <button
+                                        className="btn btn-icon btn-secondary"
+                                        onClick={() => setShowEditModal(true)}
+                                        title="ערוך אירוע"
+                                    >
+                                        <Edit2 size={20} />
+                                    </button>
+                                )}
+                            </div>
                             <div className="event-meta-large">
                                 <div className="meta-item">
                                     <Calendar className="icon" />
@@ -128,6 +141,18 @@ export function EventDetailsPage() {
                         <p className="event-description">{event.description}</p>
                     </section>
 
+                    {event.backlineProvided && (
+                        <section className="event-section mt-xl">
+                            <h2 className="section-title flex items-center gap-sm">
+                                <Music size={20} />
+                                <span>ציוד ו-Backline</span>
+                            </h2>
+                            <div className="bg-bg-secondary p-md rounded-lg whitespace-pre-wrap">
+                                {event.backlineProvided}
+                            </div>
+                        </section>
+                    )}
+
                     {organizer && (
                         <section className="event-section mt-xl">
                             <h3 className="section-subtitle">מארגן האירוע</h3>
@@ -148,12 +173,35 @@ export function EventDetailsPage() {
 
                 <div className="event-sidebar">
                     <div className="event-action-card card">
+                        {event.whatsappGroupId && (
+                            <a
+                                href={event.whatsappGroupId}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn btn-outline w-full mb-md flex items-center justify-center gap-2"
+                            >
+                                <MessageCircle size={18} />
+                                קבוצת WhatsApp
+                            </a>
+                        )}
+
                         <div className="price-tag">
                             {priceText}
                         </div>
 
                         {isPast ? (
                             <button className="btn btn-secondary w-full" disabled>האירוע הסתיים</button>
+                        ) : event.ticketLink ? (
+                            <a
+                                href={event.ticketLink}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn btn-primary w-full btn-lg flex items-center justify-center gap-2"
+                            >
+                                <Ticket size={20} />
+                                רכישת כרטיסים
+                                <ExternalLink size={16} />
+                            </a>
                         ) : userRegistration ? (
                             <div className="registration-status">
                                 <div className="status-message success mb-md">
@@ -188,6 +236,14 @@ export function EventDetailsPage() {
                     </div>
                 </div>
             </div>
+            {event && (
+                <EditEventModal
+                    event={event}
+                    isOpen={showEditModal}
+                    onClose={() => setShowEditModal(false)}
+                    onEventUpdated={(updated) => setEvent(updated)}
+                />
+            )}
         </div>
     );
 }

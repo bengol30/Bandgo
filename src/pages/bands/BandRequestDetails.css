@@ -354,3 +354,191 @@
     gap: var(--spacing-md);
     color: var(--color-success);
 }
+
+/* Application Management */
+.applications-section {
+    margin-top: var(--spacing-lg);
+}
+
+.apps-section-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.applications-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.application-card {
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    transition: border-color 0.2s;
+}
+
+.application-card:hover {
+    border-color: var(--color-primary);
+}
+
+.application-card.reviewed {
+    opacity: 0.7;
+}
+
+.application-card.reviewed.approved {
+    border-color: var(--color-success);
+    opacity: 0.85;
+}
+
+.app-user-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+}
+
+.app-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.app-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.app-details h4 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--color-text-primary);
+}
+
+.app-instrument {
+    font-size: 0.85rem;
+    color: var(--color-primary);
+    display: block;
+}
+
+.app-city {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.app-message {
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    font-style: italic;
+    margin: var(--spacing-sm) 0;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-sm);
+    border-right: 3px solid var(--color-primary);
+}
+
+.app-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+}
+
+.btn-success {
+    background: var(--color-success);
+    color: #fff;
+    border: none;
+    padding: 6px 16px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-success:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background: transparent;
+    color: var(--color-danger, #ef4444);
+    border: 1px solid var(--color-danger, #ef4444);
+    padding: 6px 16px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.app-status-badge {
+    font-size: 0.85rem;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-weight: 600;
+}
+
+.app-status-badge.approved {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--color-success);
+}
+
+.app-status-badge.rejected {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--color-danger, #ef4444);
+}
+
+.applications-section.reviewed {
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--color-border);
+}
+
+/* Band Name Modal */
+.band-name-modal {
+    max-width: 420px;
+    text-align: center;
+}
+
+.band-name-modal h2 {
+    font-size: 1.5rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+.band-name-modal .form-input {
+    width: 100%;
+    margin: var(--spacing-md) 0;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+.band-name-modal .modal-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: center;
+    margin-top: var(--spacing-md);
+}
+
+.band-name-modal .modal-actions .btn {
+    flex: 1;
+}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserMinus, Save, Check, XCircle } from 'lucide-react';
+import { X, UserMinus, Save, Check, XCircle, LogOut, Trash2, AlertTriangle } from 'lucide-react';
 import { Band, User, BandApplication } from '../../types';
 import { localRepository } from '../../repositories/LocalRepository';
 import { useAuth } from '../../contexts/AuthContext';
@@ -13,9 +13,10 @@ interface BandSettingsModalProps {
     isOpen: boolean;
     onClose: () => void;
     onBandUpdated: (band: Band) => void;
+    onBandDeleted?: () => void;
 }
 
-export function BandSettingsModal({ band, usersMap, isOpen, onClose, onBandUpdated }: BandSettingsModalProps) {
+export function BandSettingsModal({ band, usersMap, isOpen, onClose, onBandUpdated, onBandDeleted }: BandSettingsModalProps) {
     const { user } = useAuth();
     const { showToast } = useToast();
     const [activeTab, setActiveTab] = useState<'general' | 'members' | 'applications'>('general');
@@ -29,6 +30,11 @@ export function BandSettingsModal({ band, usersMap, isOpen, onClose, onBandUpdat
     // Applications State
     const [applications, setApplications] = useState<BandApplication[]>([]);
     const [loadingApps, setLoadingApps] = useState(false);
+
+    // Danger zone state
+    const [confirmLeave, setConfirmLeave] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState(false);
+    const [processing, setProcessing] = useState(false);
 
     useEffect(() => {
         if (activeTab === 'applications' && band.originalBandRequestId) {
@@ -109,6 +115,44 @@ export function BandSettingsModal({ band, usersMap, isOpen, onClose, onBandUpdat
         }
     };
 
+    const handleLeaveBand = async () => {
+        if (!user) return;
+        try {
+            setProcessing(true);
+            const result = await localRepository.leaveBand(band.id, user.id);
+            if (result.deleted) {
+                showToast('עזבת את הלהקה. הלהקה נמחקה כי לא נותרו חברים.', 'info');
+            } else {
+                showToast('עזבת את הלהקה בהצלחה', 'success');
+            }
+            onClose();
+            onBandDeleted?.();
+        } catch (error) {
+            console.error(error);
+            showToast('שגיאה ביציאה מהלהקה', 'error');
+        } finally {
+            setProcessing(false);
+            setConfirmLeave(false);
+        }
+    };
+
+    const handleDeleteBand = async () => {
+        if (!user) return;
+        try {
+            setProcessing(true);
+            await localRepository.deleteBand(band.id, user.id);
+            showToast('הלהקה נמחקה לצמיתות', 'success');
+            onClose();
+            onBandDeleted?.();
+        } catch (error) {
+            console.error(error);
+            showToast('שגיאה במחיקת הלהקה', 'error');
+        } finally {
+            setProcessing(false);
+            setConfirmDelete(false);
+        }
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -178,6 +222,86 @@ export function BandSettingsModal({ band, usersMap, isOpen, onClose, onBandUpdat
                                     רשאים לערוך פרטים: מנהל הלהקה בלבד.
                                 </p>
                             )}
+
+                            {/* Danger Zone */}
+                            <div className="danger-zone">
+                                <h4 className="danger-zone-title">
+                                    <AlertTriangle size={18} />
+                                    אזור מסוכן
+                                </h4>
+
+                                {/* Leave Band - visible to everyone */}
+                                <div className="danger-zone-item">
+                                    <div className="danger-zone-info">
+                                        <strong>עזיבת הלהקה</strong>
+                                        <p>צא מהלהקה. אם אתה האחרון, הלהקה תימחק.</p>
+                                    </div>
+                                    {!confirmLeave ? (
+                                        <button
+                                            className="btn btn-sm btn-outline-danger"
+                                            onClick={() => setConfirmLeave(true)}
+                                            disabled={processing}
+                                        >
+                                            <LogOut size={16} />
+                                            עזוב להקה
+                                        </button>
+                                    ) : (
+                                        <div className="confirm-actions">
+                                            <button
+                                                className="btn btn-sm btn-danger"
+                                                onClick={handleLeaveBand}
+                                                disabled={processing}
+                                            >
+                                                {processing ? 'יוצא...' : 'אישור עזיבה'}
+                                            </button>
+                                            <button
+                                                className="btn btn-sm btn-ghost"
+                                                onClick={() => setConfirmLeave(false)}
+                                                disabled={processing}
+                                            >
+                                                ביטול
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Delete Band - only leader */}
+                                {isCurrentUserLeader && (
+                                    <div className="danger-zone-item">
+                                        <div className="danger-zone-info">
+                                            <strong>מחיקת הלהקה</strong>
+                                            <p>מחיקה לצמיתות של הלהקה, כולל כל המשימות, השירים והחזרות.</p>
+                                        </div>
+                                        {!confirmDelete ? (
+                                            <button
+                                                className="btn btn-sm btn-outline-danger"
+                                                onClick={() => setConfirmDelete(true)}
+                                                disabled={processing}
+                                            >
+                                                <Trash2 size={16} />
+                                                מחק להקה
+                                            </button>
+                                        ) : (
+                                            <div className="confirm-actions">
+                                                <button
+                                                    className="btn btn-sm btn-danger"
+                                                    onClick={handleDeleteBand}
+                                                    disabled={processing}
+                                                >
+                                                    {processing ? 'מוחק...' : 'מחק לצמיתות'}
+                                                </button>
+                                                <button
+                                                    className="btn btn-sm btn-ghost"
+                                                    onClick={() => setConfirmDelete(false)}
+                                                    disabled={processing}
+                                                >
+                                                    ביטול
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 
@@ -226,9 +350,7 @@ export function BandSettingsModal({ band, usersMap, isOpen, onClose, onBandUpdat
                                 <div className="empty-state text-center py-4 text-muted">אין בקשות ממתינות</div>
                             ) : (
                                 applications.map(app => {
-                                    const applicant = usersMap[app.applicantId]; // Might need to fetch user if not in map
-                                    // Assuming usersMap has all relevant users. If not, names might be missing.
-                                    // But Repo has fetchAllUsers in BandDetailsPage so it should be fine.
+                                    const applicant = usersMap[app.applicantId];
                                     return (
                                         <div key={app.id} className="application-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderBottom: '1px solid var(--border-color)' }}>
                                             <div className="app-info">
@@ -276,3 +398,4 @@ export function BandSettingsModal({ band, usersMap, isOpen, onClose, onBandUpdat
         </div>
     );
 }
+

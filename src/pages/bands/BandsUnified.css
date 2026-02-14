@@ -524,3 +524,115 @@
     color: var(--color-text-muted);
     pointer-events: none;
 }
+/* ============ MY BANDS SECTION ============ */
+.my-bands-section {
+    padding: 0 var(--spacing-md) var(--spacing-lg);
+    max-width: var(--container-width);
+    margin: 0 auto;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.section-title-small {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.btn-text {
+    background: none;
+    border: none;
+    color: var(--color-accent);
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: var(--radius-md);
+    transition: background 0.2s;
+}
+
+.btn-text:hover {
+    background: var(--color-bg-tertiary);
+}
+
+.my-bands-scroll {
+    display: flex;
+    gap: var(--spacing-md);
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scrollbar-width: none; /* Firefox */
+}
+
+.my-bands-scroll::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+}
+
+.my-band-card-mini {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    padding: 12px;
+    border-radius: 16px; /* Slightly more rounded */
+    min-width: 240px;
+    flex-shrink: 0;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s;
+}
+
+.my-band-card-mini:hover {
+    border-color: var(--color-accent);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.mini-cover {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--color-bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    color: var(--color-text-tertiary);
+}
+
+.mini-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.mini-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.mini-info h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.mini-info span {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+}
+
+/* Header Actions for multiple buttons */
+.header-actions {
+    display: flex;
+    gap: 8px;
+}

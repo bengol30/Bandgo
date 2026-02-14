@@ -6,8 +6,8 @@
 .page-chat {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 70px);
-    /* Leave space for bottom nav */
+    /* Account for TopHeader (~70px) + BottomNav (70px) + Safety Margin (20px) */
+    height: calc(100dvh - 160px);
     padding: 0;
     overflow: hidden;
     background: var(--color-bg-primary);

@@ -176,7 +176,8 @@
 /* Actions Footer */
 .edit-actions-footer {
     position: sticky;
-    bottom: var(--spacing-md);
+    /* Sit above BottomNav (70px) + spacing */
+    bottom: 90px;
     background: rgba(30, 30, 40, 0.9);
     /* Dark semi-transparent */
     backdrop-filter: blur(10px);
@@ -189,4 +190,10 @@
     border: 1px solid var(--color-border);
     margin-top: var(--spacing-xl);
     z-index: 100;
+}
+
+/* Add extra padding to page bottom so we can scroll past the sticky footer */
+.edit-profile-page {
+    /* ... */
+    padding-bottom: 200px;
 }

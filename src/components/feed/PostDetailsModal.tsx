@@ -39,15 +39,21 @@ export function PostDetailsModal({ postId, isOpen, onClose }: PostDetailsModalPr
     const loadPostData = async (id: string) => {
         try {
             setLoading(true);
-            const [postData, commentsData, usersData] = await Promise.all([
+            const [postData, commentsData] = await Promise.all([
                 localRepository.getPost(id),
-                localRepository.getComments(id),
-                localRepository.getAllUsers()
+                localRepository.getComments(id)
             ]);
 
             if (postData) {
                 setPost(postData);
                 setComments(commentsData); // Assuming already sorted
+
+                // Optimized fetching: only get authors of this post and comments
+                const authorIds = new Set<string>();
+                if (postData.authorId) authorIds.add(postData.authorId);
+                commentsData.forEach(c => authorIds.add(c.authorId));
+
+                const usersData = await localRepository.getUsersByIds(Array.from(authorIds));
                 const uMap: Record<string, User> = {};
                 usersData.forEach(u => uMap[u.id] = u);
                 setUsersMap(uMap);

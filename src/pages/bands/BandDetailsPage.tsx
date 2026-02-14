@@ -1,5 +1,6 @@
+
 // ============================================
-// bandgo - Band Details Page
+// bandgo - Band Details Page (Public Profile)
 // ============================================
 
 import { useState, useEffect } from 'react';
@@ -9,29 +10,17 @@ import {
     MapPin,
     Music,
     Users,
-    Calendar,
-    Check,
-    Clock,
-    MessageCircle,
-    CalendarClock,
-    Plus,
-    Edit2,
-    Trash2,
-    Settings
+    Settings,
+    Target,
+    Shield
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { SongList } from '../../components/songs/SongList';
-import { ManageSongModal } from '../../components/songs/ManageSongModal';
-import { BandSettingsModal } from '../../components/bands/BandSettingsModal';
 import { useToast } from '../../contexts/ToastContext';
 import { localRepository } from '../../repositories/LocalRepository';
-import type { Band, User, Rehearsal, Song, PerformanceRequest, RehearsalPoll } from '../../types';
-import { RehearsalStatus, PerformanceRequestStatus } from '../../types';
-import { getGenreName, getInstrumentName, formatDate } from '../../utils';
+import type { Band, User } from '../../types';
+import { getGenreName, getInstrumentName } from '../../utils';
 import './Bands.css';
 import './BandDetails.css';
-import { CreatePollModal } from '../../components/rehearsals/CreatePollModal';
-import { PollCard } from '../../components/rehearsals/PollCard';
 import { BandProgress } from '../../components/bands/BandProgress';
 
 export function BandDetailsPage() {
@@ -42,19 +31,8 @@ export function BandDetailsPage() {
 
     const [band, setBand] = useState<Band | null>(null);
     const [users, setUsers] = useState<Record<string, User>>({});
-    const [rehearsals, setRehearsals] = useState<Rehearsal[]>([]);
-    const [songs, setSongs] = useState<Song[]>([]);
-    const [performanceRequest, setPerformanceRequest] = useState<PerformanceRequest | null>(null);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'overview' | 'rehearsals' | 'songs'>('overview');
-    const [showSettingsModal, setShowSettingsModal] = useState(false);
-    const [polls, setPolls] = useState<RehearsalPoll[]>([]);
-    const [showCreatePollModal, setShowCreatePollModal] = useState(false);
-
-    // Song Management State
-    const [showSongModal, setShowSongModal] = useState(false);
-    const [editingSong, setEditingSong] = useState<Song | null>(null);
-    const [savingSong, setSavingSong] = useState(false);
+    const [activeTab, setActiveTab] = useState<'overview'>('overview');
 
     useEffect(() => {
         if (id) {
@@ -65,23 +43,15 @@ export function BandDetailsPage() {
     const loadData = async (bandId: string) => {
         try {
             setLoading(true);
-            const [bandsData, usersData, rehearsalsData, songsData, perfReqData, pollsData] = await Promise.all([
+            const [bandsData, usersData] = await Promise.all([
                 localRepository.getBands(),
                 localRepository.getAllUsers(),
-                localRepository.getRehearsals(bandId),
-                localRepository.getSongs(bandId),
-                localRepository.getPerformanceRequest(bandId),
-                localRepository.getRehearsalPolls(bandId),
             ]);
 
             const foundBand = bandsData.find(b => b.id === bandId);
 
             if (foundBand) {
                 setBand(foundBand);
-                setRehearsals(rehearsalsData);
-                setSongs(songsData);
-                setPerformanceRequest(perfReqData);
-                setPolls(pollsData);
                 const usersMap: Record<string, User> = {};
                 usersData.forEach(u => { usersMap[u.id] = u; });
                 setUsers(usersMap);
@@ -97,97 +67,6 @@ export function BandDetailsPage() {
         }
     };
 
-    const getRequestStatusLabel = (status: PerformanceRequestStatus) => {
-        switch (status) {
-            case PerformanceRequestStatus.SUBMITTED: return 'נשלחה';
-            case PerformanceRequestStatus.IN_REVIEW: return 'בבדיקה';
-            case PerformanceRequestStatus.APPROVED: return 'אושרה!';
-            case PerformanceRequestStatus.REJECTED: return 'נדחתה';
-            case PerformanceRequestStatus.NEEDS_CHANGES: return 'נדרש תיקון';
-            default: return status;
-        }
-    };
-
-    const handleRequestPerformance = async () => {
-        if (!band || !user) return;
-        if (!confirm('האם אתה בטוח שברצונך להגיש בקשה להופעה? הלהקה עמדה ביעד החזרות!')) return;
-
-        try {
-            const notes = prompt('הערות לבקשה (אופציונלי):');
-
-            await localRepository.createPerformanceRequest({
-                bandId: band.id,
-                preferredDateRange: {
-                    start: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // In 30 days
-                    end: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),   // Bandwidth of 30 days
-                },
-                setDurationMinutes: 45, // Default set
-                notes: notes || undefined,
-                status: PerformanceRequestStatus.SUBMITTED,
-                createdBy: user.id
-            } as any);
-
-            showToast('הבקשה הוגשה בהצלחה!', 'success');
-            loadData(band.id); // Reload to see the status
-        } catch (error) {
-            console.error('Failed to request performance:', error);
-            showToast('שגיאה בהגשת הבקשה', 'error');
-        }
-    };
-
-    const handleSaveSong = async (songData: Partial<Song>) => {
-        if (!band) return;
-        try {
-            setSavingSong(true);
-
-            // Validate title
-            if (!songData.title?.trim()) {
-                showToast('שם השיר הוא שדה חובה', 'error');
-                return;
-            }
-
-            if (editingSong) {
-                const updated = await localRepository.updateSong(editingSong.id, songData);
-                setSongs(songs.map(s => s.id === updated.id ? updated : s));
-                showToast('השיר עודכן בהצלחה', 'success');
-            } else {
-                // Ensure required fields for creation
-                const newSong = await localRepository.createSong({
-                    bandId: band.id,
-                    title: songData.title!, // Validated above
-                    lyrics: songData.lyrics,
-                    chords: songData.chords,
-                    bpm: songData.bpm,
-                    key: songData.key,
-                    notes: songData.notes,
-                    structure: songData.structure,
-                    audioFiles: [],
-                    createdBy: user?.id || 'system',
-                });
-                setSongs([...songs, newSong]);
-                showToast('השיר נוסף בהצלחה', 'success');
-            }
-            setShowSongModal(false);
-            setEditingSong(null);
-        } catch (error) {
-            console.error('Failed to save song:', error);
-            showToast('שגיאה בשמירת השיר', 'error');
-        } finally {
-            setSavingSong(false);
-        }
-    };
-
-    const handleDeleteSong = async (songId: string) => {
-        try {
-            await localRepository.deleteSong(songId);
-            setSongs(songs.filter(s => s.id !== songId));
-            showToast('השיר נמחק', 'success');
-        } catch (error) {
-            console.error('Failed to delete song:', error);
-            showToast('שגיאה במחיקת השיר', 'error');
-        }
-    };
-
     if (loading) {
         return (
             <div className="page-loading">
@@ -198,14 +77,15 @@ export function BandDetailsPage() {
 
     if (!band) return null;
 
-
+    // Check if current user is a member
+    const isMember = band.members.some(m => m.userId === user?.id) || user?.role === 'admin';
 
     return (
         <div className="page page-band-details">
             {/* Back Button */}
-            <button className="back-button" onClick={() => navigate(-1)}>
+            <button className="back-button" onClick={() => navigate('/bands')}>
                 <ArrowRight size={20} />
-                <span>חזרה</span>
+                <span>חזרה לאינדקס</span>
             </button>
 
             {/* Header with Cover Image */}
@@ -241,262 +121,123 @@ export function BandDetailsPage() {
 
             {/* Action Buttons */}
             <div className="band-actions">
-                <button
-                    className="action-btn action-btn-primary"
-                    onClick={() => navigate(`/bands/${id}/chat`)}
-                >
-                    <MessageCircle size={18} />
-                    צ'אט הלהקה
-                </button>
-                <button
-                    className="action-btn action-btn-secondary"
-                    onClick={() => navigate(`/bands/${id}/schedule`)}
-                >
-                    <CalendarClock size={18} />
-                    תיאום חזרות
-                </button>
-                <button
-                    className="action-btn action-btn-secondary"
-                    onClick={() => setShowSettingsModal(true)}
-                >
-                    <Settings size={18} />
-                    הגדרות
-                </button>
+                {isMember ? (
+                    <button
+                        className="btn btn-primary w-full md:w-auto flex items-center gap-2 justify-center"
+                        onClick={() => navigate(`/bands/${id}/workspace`)}
+                    >
+                        <Shield size={18} />
+                        כניסה לאזור ניהול (Workspace)
+                    </button>
+                ) : (
+                    user && (
+                        <button className="btn btn-outline secondary w-full md:w-auto" onClick={() => showToast('עוקב (בקרוב...)', 'success')}>
+                            עקוב אחרי הלהקה
+                        </button>
+                    )
+                )}
             </div>
 
-            {/* Progress Bar */}
-            {/* Progress Bar */}
+            {/* Progress Bar (Public View) */}
             <div className="container" style={{ marginBottom: 'var(--spacing-lg)' }}>
-                <BandProgress band={band} />
-            </div>
-
-            {/* Tabs */}
-            <div className="band-tabs">
-                <button
-                    className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('overview')}
-                >
-                    סקירה כללית
-                </button>
-                <button
-                    className={`tab-button ${activeTab === 'rehearsals' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('rehearsals')}
-                >
-                    חזרות
-                </button>
-                <button
-                    className={`tab-button ${activeTab === 'songs' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('songs')}
-                >
-                    שירים
-                </button>
-            </div>
-
-            {/* Tab Content */}
-            <div className="tab-content">
-                {activeTab === 'overview' && (
-                    <div className="overview-tab">
-                        {/* Description */}
-                        <div className="section">
-                            <h3 className="section-title">אודות</h3>
-                            <p className="band-description">{band.description}</p>
-                        </div>
-
-                        {/* Progress Section */}
-                        <div className="section progress-section">
-                            <h3 className="section-title">הדרך להופעה</h3>
-                            <div className="progress-card" style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: 'var(--radius-lg)' }}>
-                                <div className="progress-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>
-                                    <span>חזרות שאושרו</span>
-                                    <span>{band.approvedRehearsalsCount} / {band.rehearsalGoal}</span>
-                                </div>
-                                <div className="progress-bar-bg" style={{ background: 'var(--bg-card)', width: '100%', height: '8px', borderRadius: '4px', overflow: 'hidden', marginBottom: '1rem' }}>
-                                    <div
-                                        className="progress-bar-fill"
-                                        style={{
-                                            background: 'var(--primary-color)',
-                                            height: '100%',
-                                            width: `${Math.min(100, (band.approvedRehearsalsCount / band.rehearsalGoal) * 100)}%`,
-                                            transition: 'width 0.5s ease'
-                                        }}
-                                    ></div>
-                                </div>
-
-                                <div className="progress-actions">
-                                    {performanceRequest ? (
-                                        <div className={`status-badge ${performanceRequest.status.toLowerCase()}`} style={{
-                                            display: 'inline-flex', padding: '0.25rem 0.75rem', borderRadius: '999px', fontSize: '0.85rem', fontWeight: 500,
-                                            background: 'rgba(var(--primary-rgb), 0.1)', color: 'var(--primary-color)'
-                                        }}>
-                                            סטטוס בקשה: {getRequestStatusLabel(performanceRequest.status)}
-                                        </div>
-                                    ) : (
-                                        <button
-                                            className="btn btn-primary"
-                                            style={{ width: '100%' }}
-                                            disabled={band.approvedRehearsalsCount < band.rehearsalGoal}
-                                            onClick={handleRequestPerformance}
-                                        >
-                                            הגש בקשה להופעה
-                                            {band.approvedRehearsalsCount < band.rehearsalGoal && ` (חסרות ${band.rehearsalGoal - band.approvedRehearsalsCount} חזרות)`}
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Members */}
-                        <div className="section">
-                            <h3 className="section-title">חברי הלהקה</h3>
-                            <div className="members-list">
-                                {band.members.map(member => {
-                                    const memberUser = users[member.userId];
-                                    return (
-                                        <div key={member.userId} className="member-item">
-                                            <div className="member-avatar">
-                                                {memberUser?.avatarUrl ? (
-                                                    <img src={memberUser.avatarUrl} alt={memberUser.displayName} />
-                                                ) : (
-                                                    <div className="avatar-placeholder">{memberUser?.displayName?.charAt(0) || '?'}</div>
-                                                )}
-                                            </div>
-                                            <div className="member-info">
-                                                <span className="member-name">
-                                                    {memberUser?.displayName || 'משתמש'}
-                                                    {member.isLeader && <span className="leader-badge">מוביל</span>}
-                                                </span>
-                                                <span className="member-instrument">{getInstrumentName(member.instrumentId)}</span>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                <div className="progress-card" style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: 'var(--radius-lg)' }}>
+                    <div className="progress-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>
+                        <span>התקדמות הלהקה</span>
+                        <span>{Math.round(Math.min(100, (band.approvedRehearsalsCount / band.rehearsalGoal) * 100))}%</span>
                     </div>
-                )}
-
-                {activeTab === 'rehearsals' && (
-                    <div className="rehearsals-tab">
-                        <div className="tab-actions mb-4" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-                            <button
-                                className="action-btn action-btn-primary"
-                                onClick={() => setShowCreatePollModal(true)}
-                            >
-                                <Plus size={16} />
-                                תאם חזרה חדשה
-                            </button>
-                        </div>
-
-                        {polls.length > 0 && (
-                            <div className="polls-section mb-xl">
-                                <h3 className="section-title text-accent mb-md" style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>הצבעות פתוחות</h3>
-                                {polls.map(poll => (
-                                    <PollCard
-                                        key={poll.id}
-                                        poll={poll}
-                                        usersMap={users}
-                                        bandMembers={band.members}
-                                        onVote={() => loadData(id!)}
-                                        isLeader={band.members.find(m => m.userId === user?.id)?.isLeader || false}
-                                    />
-                                ))}
-                                <div className="divider"></div>
-                            </div>
-                        )}
-
-                        {rehearsals.length === 0 && polls.length === 0 ? (
-                            <div className="empty-state">
-                                <Calendar size={48} />
-                                <p>אין חזרות מתוזמנות</p>
-                            </div>
-                        ) : (
-                            <div className="rehearsals-list">
-                                {rehearsals.length > 0 && <h3 className="section-title mb-md" style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>חזרות שנקבעו</h3>}
-                                {rehearsals.map(rehearsal => (
-                                    <div key={rehearsal.id} className={`rehearsal-item ${rehearsal.status}`}>
-                                        <div className="rehearsal-status-icon">
-                                            {rehearsal.status === RehearsalStatus.APPROVED ? (
-                                                <Check className="status-approved" />
-                                            ) : (
-                                                <Clock className="status-pending" />
-                                            )}
-                                        </div>
-                                        <div className="rehearsal-info">
-                                            <span className="rehearsal-date">{formatDate(rehearsal.dateTime)}</span>
-                                            <span className="rehearsal-location">{rehearsal.location}</span>
-                                        </div>
-                                        <span className={`rehearsal-status-badge ${rehearsal.status}`}>
-                                            {rehearsal.status === RehearsalStatus.APPROVED ? 'אושרה' :
-                                                rehearsal.status === RehearsalStatus.SCHEDULED ? 'מתוכננת' : 'בוטלה'}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {activeTab === 'songs' && (
-                    <div className="songs-tab">
-                        <div className="tab-actions mb-4" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-                            <button
-                                className="action-btn action-btn-primary"
-                                onClick={() => {
-                                    setEditingSong(null);
-                                    setShowSongModal(true);
-                                }}
-                                style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
-                            >
-                                <Plus size={16} />
-                                הוסף שיר חדש
-                            </button>
-                        </div>
-
-                        <SongList
-                            songs={songs}
-                            onEdit={(song) => {
-                                setEditingSong(song);
-                                setShowSongModal(true);
+                    <div className="progress-bar-bg" style={{ background: 'var(--bg-card)', width: '100%', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
+                        <div
+                            className="progress-bar-fill"
+                            style={{
+                                background: 'var(--primary-color)',
+                                height: '100%',
+                                width: `${Math.min(100, (band.approvedRehearsalsCount / band.rehearsalGoal) * 100)}%`,
                             }}
-                            onDelete={handleDeleteSong}
-                        />
+                        ></div>
                     </div>
-                )}
+                </div>
             </div>
 
+            {/* Content */}
+            <div className="overview-tab container">
+                {/* Description */}
+                <div className="section">
+                    <h3 className="section-title">אודות</h3>
+                    <p className="band-description">{band.description || 'אין תיאור זמין.'}</p>
+                </div>
 
-            {/* Settings Modal */}
-            {band && (
-                <BandSettingsModal
-                    band={band}
-                    usersMap={users}
-                    isOpen={showSettingsModal}
-                    onClose={() => setShowSettingsModal(false)}
-                    onBandUpdated={(updatedBand) => {
-                        setBand(updatedBand);
-                    }}
-                />
-            )}
+                {/* Targeting Info */}
+                {(band.commitmentLevel || band.rehearsalFrequency || band.targetAgeRange) && (
+                    <div className="section targeting-section">
+                        <h3 className="section-title">
+                            <Target size={18} />
+                            פרופיל
+                        </h3>
+                        <div className="targeting-grid">
+                            {band.commitmentLevel && (
+                                <div className="targeting-item">
+                                    <span className="label">מחויבות:</span>
+                                    <span className="value">
+                                        {band.commitmentLevel === 'hobby' && 'תחביב 🍻'}
+                                        {band.commitmentLevel === 'intermediate' && 'רציני 🎸'}
+                                        {band.commitmentLevel === 'professional' && 'מקצועי 🏆'}
+                                    </span>
+                                </div>
+                            )}
+                            {band.rehearsalFrequency && (
+                                <div className="targeting-item">
+                                    <span className="label">תדירות:</span>
+                                    <span className="value">{band.rehearsalFrequency}</span>
+                                </div>
+                            )}
+                            {band.targetAgeRange && (
+                                <div className="targeting-item">
+                                    <span className="label">גילאים:</span>
+                                    <span className="value">{band.targetAgeRange.min} - {band.targetAgeRange.max}</span>
+                                </div>
+                            )}
+                            {band.influences && band.influences.length > 0 && (
+                                <div className="targeting-item full-width">
+                                    <span className="label">השפעות:</span>
+                                    <div className="flex flex-wrap gap-xs mt-xs">
+                                        {band.influences.map((inf, i) => (
+                                            <span key={i} className="chip chip-outline text-xs">{inf}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
-            <ManageSongModal
-                isOpen={showSongModal}
-                onClose={() => {
-                    setShowSongModal(false);
-                    setEditingSong(null);
-                }}
-                onSave={handleSaveSong}
-                initialData={editingSong}
-                saving={savingSong}
-            />
-
-            {band && (
-                <CreatePollModal
-                    isOpen={showCreatePollModal}
-                    onClose={() => setShowCreatePollModal(false)}
-                    bandId={band.id}
-                    onPollCreated={() => loadData(band.id)}
-                />
-            )}
+                {/* Members */}
+                <div className="section">
+                    <h3 className="section-title">חברי הלהקה</h3>
+                    <div className="members-list">
+                        {band.members.map(member => {
+                            const memberUser = users[member.userId];
+                            return (
+                                <div key={member.userId} className="member-item" onClick={() => navigate(`/profile/${member.userId}`)}>
+                                    <div className="member-avatar">
+                                        {memberUser?.avatarUrl ? (
+                                            <img src={memberUser.avatarUrl} alt={memberUser.displayName} />
+                                        ) : (
+                                            <div className="avatar-placeholder">{memberUser?.displayName?.charAt(0) || '?'}</div>
+                                        )}
+                                    </div>
+                                    <div className="member-info">
+                                        <span className="member-name">
+                                            {memberUser?.displayName || 'משתמש'}
+                                            {member.isLeader && <span className="leader-badge">מוביל</span>}
+                                        </span>
+                                        <span className="member-instrument">{getInstrumentName(member.instrumentId)}</span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
         </div >
     );
 }

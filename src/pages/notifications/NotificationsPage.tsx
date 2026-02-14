@@ -76,22 +76,88 @@ export function NotificationsPage() {
         }
     };
 
-    const handleNotificationClick = (notification: Notification) => {
+    const handleNotificationClick = async (notification: Notification) => {
         if (!notification.read) {
             localRepository.markNotificationRead(notification.id); // Fire and forget
         }
 
         // Navigate based on type
-        if (notification.relatedEntityType === 'band_request' && notification.relatedEntityId) {
-            navigate(`/requests/${notification.relatedEntityId}`);
-        } else if (notification.relatedEntityType === 'application' && notification.relatedEntityId) {
-            // Need to figure out where to link for application review
-            // For now, maybe to the requests page?
-            navigate('/requests');
-        } else if (notification.relatedEntityType === 'band' && notification.relatedEntityId) {
-            navigate(`/bands/${notification.relatedEntityId}`);
-        } else if (notification.relatedEntityType === 'event' && notification.relatedEntityId) {
-            navigate(`/events/${notification.relatedEntityId}`);
+        switch (notification.type) {
+            case 'poll_created':
+            case 'rehearsal_scheduled':
+                if (notification.relatedEntityType === 'band' && notification.relatedEntityId) {
+                    navigate(`/bands/${notification.relatedEntityId}/schedule`);
+                }
+                break;
+
+            case 'like':
+            case 'comment':
+            case 'admin_message':
+                if (notification.relatedEntityType === 'post' && notification.relatedEntityId) {
+                    navigate(`/?postId=${notification.relatedEntityId}`);
+                }
+                break;
+
+            case 'new_song':
+                if (notification.relatedEntityType === 'band' && notification.relatedEntityId) {
+                    navigate(`/bands/${notification.relatedEntityId}`);
+                }
+                break;
+
+            case 'application_approved':
+                if (notification.relatedEntityType === 'band' && notification.relatedEntityId) {
+                    navigate(`/bands/${notification.relatedEntityId}`);
+                }
+                break;
+
+            case 'application_received':
+            case 'application_rejected':
+            case 'band_request':
+                if (notification.relatedEntityType === 'band' && notification.relatedEntityId) {
+                    navigate(`/bands/${notification.relatedEntityId}`);
+                } else if (notification.relatedEntityType === 'band_request' && notification.relatedEntityId) {
+                    navigate(`/requests/${notification.relatedEntityId}`);
+                } else if (notification.relatedEntityType === 'application' && notification.relatedEntityId) {
+                    // Fallback for older notifications or specific cases
+                    try {
+                        // We need to find where this application belongs
+                        const applications = await localRepository.getAllApplications(); // We might need a getApplicationById method
+                        const app = applications.find(a => a.id === notification.relatedEntityId);
+
+                        if (app) {
+                            const bands = await localRepository.getBands();
+                            const band = bands.find(b => b.originalBandRequestId === app.bandRequestId);
+                            if (band) {
+                                navigate(`/bands/${band.id}`);
+                                return;
+                            }
+                            // If no band, go to request details
+                            navigate(`/requests/${app.bandRequestId}`);
+                            return;
+                        }
+                    } catch (e) {
+                        console.error('Error navigating from application notification:', e);
+                    }
+                    navigate('/requests');
+                } else {
+                    navigate('/requests');
+                }
+                break;
+
+            case 'direct_message':
+                // Assuming we have a chat route, if not, maybe just /messages
+                // For now, let's assume /messages or similar. If relatedEntityId is conversationId
+                navigate(`/messages/${notification.relatedEntityId}`);
+                break;
+
+            default:
+                // Fallback to existing logic if any
+                if (notification.relatedEntityType === 'band' && notification.relatedEntityId) {
+                    navigate(`/bands/${notification.relatedEntityId}`);
+                } else if (notification.relatedEntityType === 'event' && notification.relatedEntityId) {
+                    navigate(`/events/${notification.relatedEntityId}`);
+                }
+                break;
         }
     };
 

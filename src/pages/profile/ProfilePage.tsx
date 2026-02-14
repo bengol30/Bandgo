@@ -14,13 +14,18 @@ import {
     Settings,
     LogOut,
     ChevronLeft,
-    Mic
+    Mic,
+    Phone,
+    Instagram,
+    Globe,
+    Search
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { localRepository } from '../../repositories/LocalRepository';
 import { Band, Event, EventRegistration } from '../../types';
 import { INSTRUMENTS, GENRES } from '../../data/constants';
+import { ExtendedProfileWizard } from '../../components/profile/ExtendedProfileWizard';
 import './Profile.css';
 
 export function ProfilePage() {
@@ -31,6 +36,9 @@ export function ProfilePage() {
     const [myBands, setMyBands] = useState<Band[]>([]);
     const [myEvents, setMyEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showWizard, setShowWizard] = useState(false);
+
+    const isProfileComplete = user && user.contactInfo && user.searchStatus;
 
     useEffect(() => {
         if (user) {
@@ -165,6 +173,40 @@ export function ProfilePage() {
 
                 {user.bio && <p className="profile-bio">{user.bio}</p>}
 
+                {/* Extended Info Header */}
+                <div className="flex flex-wrap gap-md mt-md justify-center">
+                    {user.searchStatus && (
+                        <div className="badge badge-primary flex items-center gap-xs">
+                            <Search size={14} />
+                            <span>
+                                {user.searchStatus === 'looking' && 'מחפש הרכב'}
+                                {user.searchStatus === 'available_for_jams' && 'זמין לג\'אמים'}
+                                {user.searchStatus === 'not_looking' && 'לא מחפש כרגע'}
+                            </span>
+                        </div>
+                    )}
+
+                    {user.contactInfo && (
+                        <div className="flex gap-sm">
+                            {user.contactInfo.whatsapp && (
+                                <a href={`https://wa.me/${user.contactInfo.whatsapp}`} target="_blank" rel="noreferrer" className="btn-icon btn-ghost text-success">
+                                    <Phone size={20} />
+                                </a>
+                            )}
+                            {user.contactInfo.instagram && (
+                                <a href={`https://instagram.com/${user.contactInfo.instagram.replace('@', '')}`} target="_blank" rel="noreferrer" className="btn-icon btn-ghost text-accent">
+                                    <Instagram size={20} />
+                                </a>
+                            )}
+                            {user.contactInfo.tiktok && (
+                                <a href={`https://tiktok.com/@${user.contactInfo.tiktok.replace('@', '')}`} target="_blank" rel="noreferrer" className="btn-icon btn-ghost">
+                                    <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>♪</span>
+                                </a>
+                            )}
+                        </div>
+                    )}
+                </div>
+
                 <div className="profile-stats">
                     <div className="profile-stat">
                         <span className="profile-stat-value">{user.instruments?.length || 0}</span>
@@ -180,6 +222,21 @@ export function ProfilePage() {
                     </div>
                 </div>
             </div>
+
+            {/* Incomplete Profile CTA */}
+            {!isProfileComplete && (
+                <div className="container mb-lg">
+                    <div className="card bg-bg-secondary border-primary" style={{ padding: 'var(--spacing-lg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                            <h3 className="text-lg font-bold mb-xs">הפרופיל שלך לא מלא! 🥺</h3>
+                            <p className="text-muted">הוסף פרטי קשר וציוד כדי שמוזיקאים יוכלו למצוא אותך.</p>
+                        </div>
+                        <button className="btn btn-primary shadow-lg" onClick={() => setShowWizard(true)}>
+                            השלם פרופיל
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Instruments */}
             {user.instruments && user.instruments.length > 0 && (
@@ -229,6 +286,33 @@ export function ProfilePage() {
                             </span>
                         ))}
                     </div>
+                </section>
+            )}
+
+            {/* Gear & Influences */}
+            {(user.gear || (user.influences && user.influences.length > 0)) && (
+                <section className="profile-section">
+                    <div className="profile-section-header">
+                        <h2 className="profile-section-title">מידע נוסף</h2>
+                    </div>
+
+                    {user.gear && (
+                        <div className="mb-md">
+                            <h3 className="text-sm font-bold text-muted mb-xs">ציוד</h3>
+                            <p className="text-sm">{user.gear}</p>
+                        </div>
+                    )}
+
+                    {user.influences && user.influences.length > 0 && (
+                        <div>
+                            <h3 className="text-sm font-bold text-muted mb-xs">השפעות</h3>
+                            <div className="flex flex-wrap gap-xs">
+                                {user.influences.map((inf, idx) => (
+                                    <span key={idx} className="chip chip-outline">{inf}</span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </section>
             )}
 
@@ -331,6 +415,15 @@ export function ProfilePage() {
                     <span>התנתקות</span>
                 </button>
             </div>
+
+            <ExtendedProfileWizard
+                isOpen={showWizard}
+                onClose={() => setShowWizard(false)}
+                onComplete={() => {
+                    setShowWizard(false);
+                    // Force reload or just let context update handle it
+                }}
+            />
         </div>
     );
 }

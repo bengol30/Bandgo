@@ -61,6 +61,18 @@ export enum LiveSessionRequestStatus {
     SCHEDULED = 'scheduled'
 }
 
+export enum BandCommitmentLevel {
+    HOBBY = 'hobby',
+    INTERMEDIATE = 'intermediate',
+    PROFESSIONAL = 'professional'
+}
+
+export enum SearchStatus {
+    LOOKING = 'looking',
+    AVAILABLE_FOR_JAMS = 'available_for_jams',
+    NOT_LOOKING = 'not_looking'
+}
+
 export enum PostType {
     USER_POST = 'user_post',
     SYSTEM_AUTO = 'system_auto',
@@ -112,6 +124,20 @@ export interface User {
     availability?: string;
     bio?: string;
     role: UserRole;
+
+    // Contact & Extended Info
+    contactInfo?: {
+        phone?: string;
+        whatsapp?: string;
+        instagram?: string;
+        tiktok?: string;
+        website?: string;
+    };
+    searchStatus?: SearchStatus;
+    gear?: string; // Equipment list
+    availabilityDays?: string; // "Sunday, Tuesday" or similar structure
+    influences?: string[];
+
     createdAt: Date;
     updatedAt: Date;
 }
@@ -154,6 +180,16 @@ export interface BandRequest {
     sketches: MediaFile[];
     sketchPending: boolean;  // True if skipped and needs to add later
 
+    // Extended Band Info
+    commitmentLevel?: BandCommitmentLevel;
+    rehearsalFrequency?: string; // e.g., "Once a week"
+    targetAgeRange?: {
+        min: number;
+        max: number;
+    };
+    influences?: string[];
+    existingRehearsalSpace?: boolean;
+
     createdAt: Date;
     updatedAt: Date;
 }
@@ -189,14 +225,38 @@ export interface Band {
     members: BandMember[];
     originalBandRequestId: string;
 
+    // Band Profile Extensions (Matched with Request)
+    commitmentLevel?: BandCommitmentLevel;
+    rehearsalFrequency?: string;
+    targetAgeRange?: {
+        min: number;
+        max: number;
+    };
+    influences?: string[];
+
     // Progress tracking
     approvedRehearsalsCount: number;
     rehearsalGoal: number;
     performanceRequestId?: string;
     liveSessionRequestId?: string;
 
+    // Workspace Tasks
+    tasks?: Task[];
+
     createdAt: Date;
     updatedAt: Date;
+}
+
+export interface Task {
+    id: string;
+    bandId: string;
+    type: 'UPLOAD_DEMOS' | 'COMPLETE_PROFILE' | 'OTHER';
+    status: 'pending' | 'completed';
+    title: string;
+    description?: string;
+    assignedTo?: string;
+    createdAt: Date;
+    completedAt?: Date;
 }
 
 export interface PollOption {
@@ -371,6 +431,14 @@ export interface Event {
     createdBy: string;
     createdAt: Date;
     updatedAt: Date;
+
+    // Extended Event Info
+    backlineProvided?: string; // Detailed backline info for jams
+    whatsappGroupId?: string; // Link to WhatsApp group
+    ageRestriction?: string; // "18+", "All ages", etc.
+    isAccessible?: boolean;
+    ticketLink?: string;
+    ticketPrice?: number;
 }
 
 export interface EventRegistration {

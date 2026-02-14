@@ -16,15 +16,19 @@ export function CreatePollModal({ isOpen, onClose, bandId, onPollCreated }: Crea
     const { user } = useAuth();
     const [loading, setLoading] = useState(false);
 
-    // Default options
+    // Default options - Use Local Time for initial values
+    const getLocalISOString = (date: Date) => {
+        const offset = date.getTimezoneOffset() * 60000;
+        return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+    };
+
     const [location, setLocation] = useState('סלון המוזיקה של פטיפון');
     const [durationMinutes, setDurationMinutes] = useState(120); // 2 hours default
     const [options, setOptions] = useState<{ id: string; dateTime: string }[]>([
         { id: crypto.randomUUID(), dateTime: '' },
         { id: crypto.randomUUID(), dateTime: '' },
-        { id: crypto.randomUUID(), dateTime: '' },
     ]);
-    const [deadline, setDeadline] = useState(new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().slice(0, 16)); // 48 hours from now
+    const [deadline, setDeadline] = useState(getLocalISOString(new Date(Date.now() + 48 * 60 * 60 * 1000)));
 
     if (!isOpen) return null;
 
@@ -33,17 +37,17 @@ export function CreatePollModal({ isOpen, onClose, bandId, onPollCreated }: Crea
     };
 
     const handleRemoveOption = (id: string) => {
-        if (options.length <= 2) return; // Minimum 2 options
-        setOptions(options.filter(o => o.id !== id));
+        if (options.length <= 2) return;
+        setOptions(prev => prev.filter(o => o.id !== id));
     };
 
     const handleOptionChange = (id: string, value: string) => {
-        setOptions(options.map(o => o.id === id ? { ...o, dateTime: value } : o));
+        setOptions(prev => prev.map(o => o.id === id ? { ...o, dateTime: value } : o));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user) return;
+        if (!user || loading) return;
 
         // Filter out empty options
         const validOptions = options.filter(o => o.dateTime);
@@ -63,9 +67,8 @@ export function CreatePollModal({ isOpen, onClose, bandId, onPollCreated }: Crea
                     id: o.id,
                     dateTime: new Date(o.dateTime),
                     durationMinutes,
-                    votes: [] // Start with empty votes
+                    votes: []
                 })),
-
             });
 
             onPollCreated(newPoll);

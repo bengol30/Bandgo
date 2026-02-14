@@ -30,7 +30,16 @@ export function TopHeader() {
     };
 
     // Don't show header on onboarding or specific pages
-    if (location.pathname === '/onboarding' || location.pathname.includes('/chat') || location.pathname.includes('/messages/')) {
+    // Routes where the top header should be hidden
+    const hideHeaderRoutes = [
+        '/onboarding',
+        '/chat',
+        '/messages'
+    ];
+
+    const shouldHideHeader = hideHeaderRoutes.some(route => location.pathname.startsWith(route));
+
+    if (shouldHideHeader) {
         return null;
     }
 

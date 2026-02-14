@@ -106,36 +106,21 @@ export function EditProfilePage() {
 
                         <div className="avatar-selection-area">
                             <label className="form-label text-center mb-sm">בחר תמונת פרופיל</label>
-                            <div className="avatar-grid" style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(4, 1fr)',
-                                gap: '0.75rem',
-                                maxWidth: '300px',
-                                margin: '0 auto 1.5rem auto'
-                            }}>
+                            <div className="avatar-grid">
                                 {AVATAR_OPTIONS.map((url, index) => (
                                     <button
                                         key={index}
                                         type="button"
-                                        className={`avatar-option-btn ${avatarUrl === url ? 'ring-2 ring-accent' : ''}`}
+                                        className={`avatar-option-btn ${avatarUrl === url ? 'selected' : ''}`}
                                         onClick={() => setAvatarUrl(url)}
-                                        style={{
-                                            borderRadius: '50%',
-                                            overflow: 'hidden',
-                                            aspectRatio: '1',
-                                            border: avatarUrl === url ? '2px solid var(--color-accent-primary)' : '2px solid transparent',
-                                            cursor: 'pointer',
-                                            padding: 0
-                                        }}
                                     >
-                                        <img src={url} alt={`Avatar ${index}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={url} alt={`Avatar ${index}`} className="avatar-option-img" />
                                     </button>
                                 ))}
                             </div>
 
-                            <div className="relative mb-md text-center" style={{ margin: '1rem 0', position: 'relative' }}>
-                                <span className="bg-bg-primary px-sm text-sm text-secondary relative z-10" style={{ background: 'var(--color-bg-primary)', padding: '0 8px' }}>או קישור אישי</span>
-                                <div className="absolute top-1/2 left-0 w-full border-t border-border transform -translate-y-1/2" style={{ zIndex: 0, position: 'absolute', top: '50%', left: 0, width: '100%', borderTop: '1px solid var(--color-border)', transform: 'translateY(-50%)' }}></div>
+                            <div className="avatar-upload-divider">
+                                <span>או קישור אישי</span>
                             </div>
 
                             <input
@@ -209,7 +194,7 @@ export function EditProfilePage() {
                             {instruments.map((inst, index) => (
                                 <div key={index} className="instrument-edit-item">
                                     <select
-                                        className="form-select flex-1 p-sm rounded border bg-bg-primary"
+                                        className="instrument-select"
                                         value={inst.instrumentId}
                                         onChange={e => handleUpdateInstrument(index, 'instrumentId', e.target.value)}
                                     >
@@ -219,7 +204,7 @@ export function EditProfilePage() {
                                     </select>
 
                                     <select
-                                        className="form-select w-32 p-sm rounded border bg-bg-primary"
+                                        className="level-select"
                                         value={inst.level}
                                         onChange={e => handleUpdateInstrument(index, 'level', e.target.value)}
                                     >
