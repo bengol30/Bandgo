@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, UserMinus, Save, Check, XCircle, LogOut, Trash2, AlertTriangle } from 'lucide-react';
 import { Band, User, BandApplication } from '../../types';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { getInstrumentName } from '../../utils';
@@ -46,7 +46,7 @@ export function BandSettingsModal({ band, usersMap, isOpen, onClose, onBandUpdat
         if (!band.originalBandRequestId) return;
         setLoadingApps(true);
         try {
-            const apps = await localRepository.getApplications(band.originalBandRequestId);
+            const apps = await repository.getApplications(band.originalBandRequestId);
             // Filter only pending
             const pending = apps.filter(a => a.status === 'pending');
             setApplications(pending);
@@ -59,7 +59,7 @@ export function BandSettingsModal({ band, usersMap, isOpen, onClose, onBandUpdat
 
     const handleReviewApplication = async (appId: string, status: 'approved' | 'rejected') => {
         try {
-            await localRepository.reviewApplication(appId, status);
+            await repository.reviewApplication(appId, status);
             showToast(status === 'approved' ? 'הבקשה אושרה והנגן צורף!' : 'הבקשה נדחתה', 'success');
 
             // Reload apps
@@ -67,7 +67,7 @@ export function BandSettingsModal({ band, usersMap, isOpen, onClose, onBandUpdat
 
             // Should also refresh band data if approved
             if (status === 'approved') {
-                const updatedBand = await localRepository.getBand(band.id);
+                const updatedBand = await repository.getBand(band.id);
                 if (updatedBand) onBandUpdated(updatedBand);
             }
         } catch (error) {
@@ -83,7 +83,7 @@ export function BandSettingsModal({ band, usersMap, isOpen, onClose, onBandUpdat
     const handleSaveDetails = async () => {
         try {
             setSaving(true);
-            const updatedBand = await localRepository.updateBand(band.id, {
+            const updatedBand = await repository.updateBand(band.id, {
                 name,
                 description,
                 city
@@ -104,7 +104,7 @@ export function BandSettingsModal({ band, usersMap, isOpen, onClose, onBandUpdat
 
         try {
             const updatedMembers = band.members.filter(m => m.userId !== memberUserId);
-            const updatedBand = await localRepository.updateBand(band.id, {
+            const updatedBand = await repository.updateBand(band.id, {
                 members: updatedMembers
             });
             onBandUpdated(updatedBand);
@@ -119,7 +119,7 @@ export function BandSettingsModal({ band, usersMap, isOpen, onClose, onBandUpdat
         if (!user) return;
         try {
             setProcessing(true);
-            const result = await localRepository.leaveBand(band.id, user.id);
+            const result = await repository.leaveBand(band.id, user.id);
             if (result.deleted) {
                 showToast('עזבת את הלהקה. הלהקה נמחקה כי לא נותרו חברים.', 'info');
             } else {
@@ -140,7 +140,7 @@ export function BandSettingsModal({ band, usersMap, isOpen, onClose, onBandUpdat
         if (!user) return;
         try {
             setProcessing(true);
-            await localRepository.deleteBand(band.id, user.id);
+            await repository.deleteBand(band.id, user.id);
             showToast('הלהקה נמחקה לצמיתות', 'success');
             onClose();
             onBandDeleted?.();

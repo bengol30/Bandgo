@@ -4,7 +4,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, UserRole } from '../types';
-import { localRepository } from '../repositories/LocalRepository';
+import { repository } from '../repositories';
 
 interface AuthContextType {
     user: User | null;
@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const loadUser = async () => {
         try {
-            const currentUser = await localRepository.getCurrentUser();
+            const currentUser = await repository.getCurrentUser();
             setUser(currentUser);
         } catch (error) {
             console.error('Failed to load user:', error);
@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const signIn = async (email: string, password: string) => {
-        const loggedInUser = await localRepository.signIn(email, password);
+        const loggedInUser = await repository.signIn(email, password);
         setUser(loggedInUser);
     };
 
@@ -51,25 +51,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await new Promise(resolve => setTimeout(resolve, 1500));
 
         // Find or create a user for Google
-        const users = await localRepository.getAllUsers();
+        const users = await repository.getAllUsers();
         let googleUser = users.find(u => u.email === 'user@gmail.com');
 
         if (!googleUser) {
             // Mock a new user from Google
-            googleUser = await localRepository.signIn('admin@bandgo.co.il', ''); // Quick fix: Login as admin for now
+            googleUser = await repository.signIn('admin@bandgo.co.il', ''); // Quick fix: Login as admin for now
         }
 
         setUser(googleUser);
     };
 
     const signOut = async () => {
-        await localRepository.signOut();
+        await repository.signOut();
         setUser(null);
     };
 
     const updateProfile = async (data: Partial<User>) => {
         if (!user) throw new Error('Not logged in');
-        const updatedUser = await localRepository.updateProfile(user.id, data);
+        const updatedUser = await repository.updateProfile(user.id, data);
         setUser(updatedUser);
     };
 

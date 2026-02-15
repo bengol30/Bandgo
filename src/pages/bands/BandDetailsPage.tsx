@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import type { Band, User } from '../../types';
 import { getGenreName, getInstrumentName } from '../../utils';
 import './Bands.css';
@@ -44,8 +44,8 @@ export function BandDetailsPage() {
         try {
             setLoading(true);
             const [bandsData, usersData] = await Promise.all([
-                localRepository.getBands(),
-                localRepository.getAllUsers(),
+                repository.getBands(),
+                repository.getAllUsers(),
             ]);
 
             const foundBand = bandsData.find(b => b.id === bandId);
@@ -213,25 +213,29 @@ export function BandDetailsPage() {
                 {/* Members */}
                 <div className="section">
                     <h3 className="section-title">חברי הלהקה</h3>
-                    <div className="members-list">
+                    <div className="members-horizontal-list">
                         {band.members.map(member => {
                             const memberUser = users[member.userId];
                             return (
-                                <div key={member.userId} className="member-item" onClick={() => navigate(`/profile/${member.userId}`)}>
-                                    <div className="member-avatar">
+                                <div
+                                    key={member.userId}
+                                    className="member-profile-card"
+                                    onClick={() => navigate(`/profile/${member.userId}`)}
+                                >
+                                    <div className="member-avatar-wrapper">
                                         {memberUser?.avatarUrl ? (
                                             <img src={memberUser.avatarUrl} alt={memberUser.displayName} />
                                         ) : (
                                             <div className="avatar-placeholder">{memberUser?.displayName?.charAt(0) || '?'}</div>
                                         )}
+                                        {member.isLeader && (
+                                            <div className="leader-badge" title="מוביל">
+                                                <Shield size={10} fill="currentColor" />
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="member-info">
-                                        <span className="member-name">
-                                            {memberUser?.displayName || 'משתמש'}
-                                            {member.isLeader && <span className="leader-badge">מוביל</span>}
-                                        </span>
-                                        <span className="member-instrument">{getInstrumentName(member.instrumentId)}</span>
-                                    </div>
+                                    <div className="member-name">{memberUser?.displayName || 'משתמש'}</div>
+                                    <div className="member-role">{getInstrumentName(member.instrumentId)}</div>
                                 </div>
                             );
                         })}

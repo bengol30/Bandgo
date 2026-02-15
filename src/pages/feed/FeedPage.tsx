@@ -8,7 +8,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Heart, MessageCircle, Share2, MoreHorizontal, Image, Send, Pin, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import { Post, PostType, User } from '../../types';
 import { PostDetailsModal } from '../../components/feed/PostDetailsModal';
 import './Feed.css';
@@ -44,8 +44,8 @@ export function FeedPage() {
         try {
             setLoading(true);
             const [postsData, usersData] = await Promise.all([
-                localRepository.getPosts(),
-                localRepository.getAllUsers(),
+                repository.getPosts(),
+                repository.getAllUsers(),
             ]);
             setPosts(postsData);
 
@@ -81,7 +81,7 @@ export function FeedPage() {
         if (!user) return;
 
         try {
-            const newPost = await localRepository.createPost({
+            const newPost = await repository.createPost({
                 type: PostType.USER_POST,
                 authorId: user.id,
                 content: newPostContent.trim(),
@@ -104,7 +104,7 @@ export function FeedPage() {
         const isLiked = likedPosts.has(postId);
         try {
             if (isLiked) {
-                await localRepository.unlikePost(postId, user.id);
+                await repository.unlikePost(postId, user.id);
                 setLikedPosts(prev => {
                     const next = new Set(prev);
                     next.delete(postId);
@@ -114,7 +114,7 @@ export function FeedPage() {
                     p.id === postId ? { ...p, likesCount: Math.max(0, p.likesCount - 1) } : p
                 ));
             } else {
-                await localRepository.likePost(postId, user.id);
+                await repository.likePost(postId, user.id);
                 setLikedPosts(prev => new Set(prev).add(postId));
                 setPosts(posts.map(p =>
                     p.id === postId ? { ...p, likesCount: p.likesCount + 1 } : p

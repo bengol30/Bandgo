@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send } from 'lucide-react';
 import { Post, Comment, User } from '../../types';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import './PostDetailsModal.css';
@@ -40,8 +40,8 @@ export function PostDetailsModal({ postId, isOpen, onClose }: PostDetailsModalPr
         try {
             setLoading(true);
             const [postData, commentsData] = await Promise.all([
-                localRepository.getPost(id),
-                localRepository.getComments(id)
+                repository.getPost(id),
+                repository.getComments(id)
             ]);
 
             if (postData) {
@@ -53,7 +53,7 @@ export function PostDetailsModal({ postId, isOpen, onClose }: PostDetailsModalPr
                 if (postData.authorId) authorIds.add(postData.authorId);
                 commentsData.forEach(c => authorIds.add(c.authorId));
 
-                const usersData = await localRepository.getUsersByIds(Array.from(authorIds));
+                const usersData = await repository.getUsersByIds(Array.from(authorIds));
                 const uMap: Record<string, User> = {};
                 usersData.forEach(u => uMap[u.id] = u);
                 setUsersMap(uMap);
@@ -77,7 +77,7 @@ export function PostDetailsModal({ postId, isOpen, onClose }: PostDetailsModalPr
 
         try {
             setSubmitting(true);
-            const comment = await localRepository.createComment({
+            const comment = await repository.createComment({
                 postId: post.id,
                 authorId: user.id,
                 content: newComment.trim()

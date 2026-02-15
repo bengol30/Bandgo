@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Save, Calendar, MapPin, Clock, Ticket, Music, Shield, Info, Link as LinkIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import { Event, EventType } from '../../types';
 import './EditEventModal.css';
 
@@ -68,7 +68,7 @@ export function EditEventModal({ event, isOpen, onClose, onEventUpdated }: EditE
         setLoading(true);
 
         try {
-            const updatedEvent = await localRepository.updateEvent(event.id, {
+            const updatedEvent = await repository.updateEvent(event.id, {
                 title,
                 description,
                 type,

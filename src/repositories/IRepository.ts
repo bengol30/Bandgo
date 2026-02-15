@@ -21,14 +21,54 @@ import {
     Event,
     EventRegistration,
     Notification,
-    ChatMessage,
+    Task,
     Conversation,
     DirectMessage,
     AvailabilitySlot,
     SchedulingSuggestion,
     MediaFile,
+    EventSubmission,
+    BandChat,
+    ChatMessage,
+    Report as AppReport,
     SystemSettings,
+    UserRole
 } from '../types';
+
+
+
+// ============ FILTER TYPES ============
+
+export interface BandRequestFilters {
+    matchMyInstruments?: boolean;
+    instruments?: string[];
+    genres?: string[];
+    region?: string;
+    type?: 'targeted' | 'open';
+    status?: 'open' | 'closed' | 'formed';
+}
+
+export interface BandFilters {
+    genres?: string[];
+    region?: string;
+    hasOpenSlots?: boolean;
+}
+
+export interface EventFilters {
+    type?: string;
+    fromDate?: Date;
+    toDate?: Date;
+}
+
+export interface BandProgress {
+    isFormed: boolean;
+    approvedRehearsals: number;
+    pendingRehearsals: number;
+    rehearsalGoal: number;
+    canRequestPerformance: boolean;
+    performanceStatus?: string;
+    liveSessionStatus?: string;
+}
 
 export interface IRepository {
     // ============ AUTH ============
@@ -67,6 +107,10 @@ export interface IRepository {
     getBandProgress(bandId: string): Promise<BandProgress>;
 
     // ============ REHEARSALS ============
+    getBandTasks(bandId: string): Promise<Task[]>;
+    createTask(bandId: string, data: Partial<Task>): Promise<Task>;
+    updateTask(bandId: string, taskId: string, data: Partial<Task>): Promise<Task>;
+    deleteTask(bandId: string, taskId: string): Promise<void>;
     getRehearsals(bandId: string): Promise<Rehearsal[]>;
     getRehearsal(id: string): Promise<Rehearsal | null>;
     getAllRehearsals(): Promise<Rehearsal[]>;  // For admin
@@ -138,6 +182,11 @@ export interface IRepository {
     getEventRegistrations(eventId: string): Promise<EventRegistration[]>;
     getMyEventRegistrations(userId: string): Promise<EventRegistration[]>;
 
+    // Submissions
+    createEventSubmission(data: Omit<EventSubmission, 'id' | 'createdAt' | 'updatedAt' | 'status'>): Promise<EventSubmission>;
+    updateEventSubmission(submissionId: string, data: Partial<EventSubmission>): Promise<void>;
+    getMyEventSubmissions(userId: string): Promise<EventSubmission[]>;
+
     // ============ NOTIFICATIONS ============
     getNotifications(userId: string): Promise<Notification[]>;
     markNotificationRead(id: string): Promise<void>;
@@ -170,38 +219,23 @@ export interface IRepository {
     // ============ FILE UPLOAD ============
     uploadFile(file: File, path: string): Promise<string>;  // Returns URL
     deleteFile(url: string): Promise<void>;
-}
 
-// ============ FILTER TYPES ============
+    // ============ ADMIN ============
+    getSystemSettings(): Promise<SystemSettings>;
+    updateSystemSettings(settings: SystemSettings): Promise<void>;
+    getReports(): Promise<AppReport[]>;
+    resolveReport(reportId: string, status: 'reviewed' | 'dismissed', note?: string): Promise<void>;
 
-export interface BandRequestFilters {
-    matchMyInstruments?: boolean;
-    instruments?: string[];
-    genres?: string[];
-    region?: string;
-    type?: 'targeted' | 'open';
-    status?: 'open' | 'closed' | 'formed';
-}
+    // Admin - Events
+    approveEventSubmission(submissionId: string, approverId: string): Promise<void>;
+    rejectEventSubmission(submissionId: string, reason: string): Promise<void>;
+    requestChangesOnSubmission(submissionId: string, notes: string): Promise<void>;
+    getAllEventSubmissions(): Promise<EventSubmission[]>;
+    getPendingEventSubmissions(): Promise<EventSubmission[]>;
 
-export interface BandFilters {
-    genres?: string[];
-    region?: string;
-    hasOpenSlots?: boolean;
-}
-
-export interface EventFilters {
-    type?: string;
-    fromDate?: Date;
-    toDate?: Date;
-}
-
-export interface BandProgress {
-    isFormed: boolean;
-    approvedRehearsals: number;
-    pendingRehearsals: number;
-    rehearsalGoal: number;
-    canRequestPerformance: boolean;
-    performanceStatus?: string;
-    canRequestLiveSession: boolean;
-    liveSessionStatus?: string;
+    // Admin - Users
+    updateUserRole(userId: string, role: UserRole): Promise<void>;
+    forceDeleteBand(bandId: string): Promise<void>;
+    deleteUser(userId: string): Promise<void>;
+    deleteEvent(eventId: string): Promise<void>;
 }

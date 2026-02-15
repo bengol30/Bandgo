@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Clock, Users, ArrowRight, Share2, Ticket, Music, Check, Edit2, Shield, ExternalLink, MessageCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import { Event, EventRegistration, User } from '../../types';
 import { useToast } from '../../contexts/ToastContext';
 import { EditEventModal } from '../../components/events/EditEventModal';
@@ -28,7 +28,7 @@ export function EventDetailsPage() {
     const loadData = async () => {
         try {
             setLoading(true);
-            const foundEvent = await localRepository.getEvent(id!);
+            const foundEvent = await repository.getEvent(id!);
             if (!foundEvent) {
                 navigate('/events');
                 return;
@@ -37,13 +37,13 @@ export function EventDetailsPage() {
 
             // Get organizer
             if (foundEvent.organizerId) {
-                const org = await localRepository.getUser(foundEvent.organizerId);
+                const org = await repository.getUser(foundEvent.organizerId);
                 setOrganizer(org);
             }
 
             // Check registration
             if (user) {
-                const regs = await localRepository.getEventRegistrations(id!);
+                const regs = await repository.getEventRegistrations(id!);
                 const myReg = regs.find(r => r.userId === user.id && r.status !== 'cancelled');
                 setUserRegistration(myReg || null);
             }
@@ -62,7 +62,7 @@ export function EventDetailsPage() {
         }
         try {
             setRegistering(true);
-            await localRepository.registerForEvent(id!, user.id);
+            await repository.registerForEvent(id!, user.id);
             showToast('נרשמת לאירוע בהצלחה!', 'success');
             loadData();
         } catch (error) {
@@ -77,7 +77,7 @@ export function EventDetailsPage() {
         if (!confirm('האם לבטל את ההרשמה?')) return;
         try {
             setRegistering(true);
-            await localRepository.cancelRegistration(id!, user!.id);
+            await repository.cancelRegistration(id!, user!.id);
             showToast('ההרשמה בוטלה', 'info');
             loadData();
         } catch (error) {

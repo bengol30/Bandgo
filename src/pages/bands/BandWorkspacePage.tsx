@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import { Band, Task, Song, User } from '../../types';
 import { BandProgress } from '../../components/bands/BandProgress';
 import { BandChat } from '../../components/chat/BandChat';
@@ -117,7 +117,7 @@ export function BandWorkspacePage() {
     const loadBandData = async () => {
         try {
             setLoading(true);
-            const foundBand = await localRepository.getBand(bandId!);
+            const foundBand = await repository.getBand(bandId!);
 
             if (!foundBand) {
                 navigate('/bands');
@@ -135,9 +135,9 @@ export function BandWorkspacePage() {
 
             // Load tasks, songs, and users
             const [bandTasks, bandSongs, allUsers] = await Promise.all([
-                localRepository.getBandTasks(bandId!),
-                localRepository.getSongs(bandId!),
-                localRepository.getAllUsers()
+                repository.getBandTasks(bandId!),
+                repository.getSongs(bandId!),
+                repository.getAllUsers()
             ]);
 
             setTasks(bandTasks);
@@ -160,7 +160,7 @@ export function BandWorkspacePage() {
         if (!bandId || !user) return;
         try {
             setIsSaving(true);
-            const newSong = await localRepository.createSong({ ...songData, bandId, createdBy: user.id } as any);
+            const newSong = await repository.createSong({ ...songData, bandId, createdBy: user.id } as any);
             setSongs(prev => [...prev, newSong]);
             setIsManageSongModalOpen(false);
             showToast('השיר נוסף בהצלחה', 'success');
@@ -177,7 +177,7 @@ export function BandWorkspacePage() {
         try {
             setIsSaving(true);
             const songId = editingSong.id;
-            await localRepository.updateSong(songId, songData);
+            await repository.updateSong(songId, songData);
             setSongs(prev => prev.map(s => s.id === songId ? { ...s, ...songData } : s));
             setIsManageSongModalOpen(false);
             setEditingSong(undefined);
@@ -192,7 +192,7 @@ export function BandWorkspacePage() {
 
     const handleDeleteSong = async (songId: string) => {
         try {
-            await localRepository.deleteSong(songId);
+            await repository.deleteSong(songId);
             setSongs(prev => prev.filter(s => s.id !== songId));
             showToast('השיר נמחק בהצלחה', 'success');
         } catch (error) {
@@ -216,7 +216,7 @@ export function BandWorkspacePage() {
         if (!bandId) return;
         try {
             setIsSaving(true);
-            const newTask = await localRepository.createTask(bandId, taskData as any);
+            const newTask = await repository.createTask(bandId, taskData as any);
             setTasks(prev => [...prev, newTask]);
             setIsCreateTaskModalOpen(false);
             showToast('המשימה נוצרה בהצלחה', 'success');
@@ -232,7 +232,7 @@ export function BandWorkspacePage() {
         if (!bandId) return;
         const newStatus = task.status === 'completed' ? 'pending' : 'completed';
         try {
-            const updated = await localRepository.updateTask(bandId, task.id, { status: newStatus });
+            const updated = await repository.updateTask(bandId, task.id, { status: newStatus });
             setTasks(prev => prev.map(t => t.id === task.id ? updated : t));
             showToast(newStatus === 'completed' ? 'המשימה הושלמה! ✅' : 'המשימה סומנה כפתוחה', 'success');
         } catch (error) {

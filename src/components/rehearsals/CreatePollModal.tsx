@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import { RehearsalPoll } from '../../types';
 import './Rehearsals.css';
 
@@ -60,7 +60,7 @@ export function CreatePollModal({ isOpen, onClose, bandId, onPollCreated }: Crea
 
         try {
             setLoading(true);
-            const newPoll = await localRepository.createRehearsalPoll({
+            const newPoll = await repository.createRehearsalPoll({
                 bandId,
                 creatorId: user.id,
                 location,

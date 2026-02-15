@@ -64,7 +64,7 @@ import {
     CURRENT_USER_ID,
 } from '../data/mockData';
 
-class LocalRepository implements IRepository {
+export class LocalRepository implements IRepository {
     // In-memory data stores
     private users: User[] = [];
     private bandRequests: BandRequest[] = [];
@@ -735,6 +735,17 @@ class LocalRepository implements IRepository {
         }
 
         // Remove band and all related data (tasks are inside band.tasks, deleted with the band)
+        this.bands.splice(index, 1);
+        this.songs = this.songs.filter(s => s.bandId !== bandId);
+        this.rehearsals = this.rehearsals.filter(r => r.bandId !== bandId);
+        this.saveToStorage();
+    }
+
+    async forceDeleteBand(bandId: string): Promise<void> {
+        await this.delay();
+        const index = this.bands.findIndex(b => b.id === bandId);
+        if (index === -1) throw new Error('Band not found');
+
         this.bands.splice(index, 1);
         this.songs = this.songs.filter(s => s.bandId !== bandId);
         this.rehearsals = this.rehearsals.filter(r => r.bandId !== bandId);

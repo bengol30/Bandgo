@@ -4,10 +4,11 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Check, Music } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Check, Music, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { Modal } from '../../components/Modal';
+import { repository } from '../../repositories';
 import { BandRequestType, BandRequestStatus, InstrumentSlot } from '../../types';
 import { INSTRUMENTS, GENRES, REGIONS } from '../../data/constants';
 import { getInstrumentName, getInstrumentIcon } from '../../utils';
@@ -34,6 +35,10 @@ export function CreateBandRequestPage() {
 
     // Open specific
     const [maxMembers, setMaxMembers] = useState(4);
+
+    // Instrument Selector Modal
+    const [showInstrumentModal, setShowInstrumentModal] = useState(false);
+    const [activeSlotIndex, setActiveSlotIndex] = useState<number | null>(null);
 
     const handleAddSlot = () => {
         setInstrumentSlots([...instrumentSlots, { instrumentId: 'guitar', quantity: 1, filledBy: [] }]);
@@ -79,7 +84,7 @@ export function CreateBandRequestPage() {
         try {
             setLoading(true);
 
-            await localRepository.createBandRequest({
+            await repository.createBandRequest({
                 creatorId: user.id,
                 title,
                 description,
@@ -199,17 +204,17 @@ export function CreateBandRequestPage() {
                                 <h3>כלים דרושים</h3>
                                 {instrumentSlots.map((slot, index) => (
                                     <div key={index} className="slot-row">
-                                        <select
-                                            className="form-select slot-instrument"
-                                            value={slot.instrumentId}
-                                            onChange={e => handleSlotChange(index, 'instrumentId', e.target.value)}
+                                        <div
+                                            className="slot-instrument-btn"
+                                            onClick={() => {
+                                                setActiveSlotIndex(index);
+                                                setShowInstrumentModal(true);
+                                            }}
                                         >
-                                            {INSTRUMENTS.map(inst => (
-                                                <option key={inst.id} value={inst.id}>
-                                                    {inst.icon} {inst.nameHe}
-                                                </option>
-                                            ))}
-                                        </select>
+                                            <span className="selected-inst-icon">{getInstrumentIcon(slot.instrumentId)}</span>
+                                            <span className="selected-inst-name">{getInstrumentName(slot.instrumentId)}</span>
+                                            <span className="change-inst-label">שנה</span>
+                                        </div>
                                         <input
                                             type="number"
                                             className="form-input slot-quantity"
@@ -297,6 +302,31 @@ export function CreateBandRequestPage() {
 
                 </form>
             </div>
+
+            {/* Instrument Selector Modal */}
+            <Modal
+                isOpen={showInstrumentModal}
+                onClose={() => setShowInstrumentModal(false)}
+                title="בחר כלי נגינה"
+            >
+                <div className="instrument-grid">
+                    {INSTRUMENTS.map(inst => (
+                        <div
+                            key={inst.id}
+                            className={`instrument-option-card ${activeSlotIndex !== null && instrumentSlots[activeSlotIndex]?.instrumentId === inst.id ? 'active' : ''}`}
+                            onClick={() => {
+                                if (activeSlotIndex !== null) {
+                                    handleSlotChange(activeSlotIndex, 'instrumentId', inst.id);
+                                    setShowInstrumentModal(false);
+                                }
+                            }}
+                        >
+                            <span className="instrument-icon-lg">{inst.icon}</span>
+                            <span className="instrument-name">{inst.nameHe}</span>
+                        </div>
+                    ))}
+                </div>
+            </Modal>
         </div>
     );
 }

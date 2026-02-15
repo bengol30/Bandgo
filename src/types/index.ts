@@ -406,19 +406,6 @@ export interface Comment {
     updatedAt: Date;
 }
 
-export interface Report {
-    id: string;
-    reporterId: string;
-    targetType: 'post' | 'comment' | 'user';
-    targetId: string;
-    reason: string;
-    status: 'pending' | 'reviewed' | 'dismissed';
-    reviewedBy?: string;
-    reviewNote?: string;
-    createdAt: Date;
-    reviewedAt?: Date;
-}
-
 // ============ EVENTS ============
 
 export interface Event {
@@ -469,6 +456,7 @@ export interface EventSubmission {
     rejectionReason?: string;
     approvedEventId?: string;
     hostUserId?: string; // For V2, defaults to submittedByUserId
+    paymentDetails?: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -593,3 +581,26 @@ export interface SystemSettings {
     googleCalendarConnected: boolean;
     googleCalendarId?: string;
 }
+
+// ============ CHAT ============
+
+export interface BandChat {
+    bandId: string;
+    messages: ChatMessage[];
+}
+
+// ============ ADMIN ============
+export interface Report {
+    id: string;
+    targetType: 'band' | 'user' | 'event' | 'post';
+    targetId: string;
+    reportedByUserId: string;
+    reason: string;
+    description?: string;
+    status: 'pending' | 'reviewed' | 'dismissed';
+    reviewNote?: string;
+    createdAt: Date;
+    resolvedAt?: Date;
+}
+
+

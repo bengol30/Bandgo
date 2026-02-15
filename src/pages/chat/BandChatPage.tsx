@@ -8,7 +8,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowRight, Send, Image, Smile, Wifi, WifiOff } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import { useBandChat } from '../../hooks/useChat';
 import type { User, Band } from '../../types';
 import { formatDate } from '../../utils';
@@ -65,8 +65,8 @@ export function BandChatPage() {
         if (!bandId) return;
         try {
             const [bandData, usersData] = await Promise.all([
-                localRepository.getBand(bandId),
-                localRepository.getAllUsers(),
+                repository.getBand(bandId),
+                repository.getAllUsers(),
             ]);
 
             if (!bandData) {

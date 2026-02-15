@@ -3,7 +3,7 @@ import { Clock, Check, X, MapPin, Calendar, CheckCircle2, Users, Copy } from 'lu
 import { RehearsalPoll, User, BandMember } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import { googleCalendarService } from '../../services/GoogleCalendarService';
 import './Rehearsals.css';
 
@@ -28,9 +28,9 @@ export function PollCard({ poll, usersMap, bandMembers, bandName, onVote, isLead
             const existingVote = option?.votes.find(v => v.userId === user.id);
             if (existingVote && existingVote.canAttend === canAttend) {
                 // Remove vote
-                await localRepository.removeVoteFromPoll(poll.id, optionId, user.id);
+                await repository.removeVoteFromPoll(poll.id, optionId, user.id);
             } else {
-                await localRepository.voteOnPoll(poll.id, optionId, user.id, canAttend);
+                await repository.voteOnPoll(poll.id, optionId, user.id, canAttend);
             }
             onVote();
         } catch (error) {
@@ -65,7 +65,7 @@ ${poll.options.map((opt, i) => `${i + 1}. ${new Date(opt.dateTime).toLocaleDateS
             setFinalizing(optionId);
 
             // Finalize in local repo
-            await localRepository.finalizePoll(poll.id, optionId);
+            await repository.finalizePoll(poll.id, optionId);
 
             // SYNC TO GOOGLE: If connected, create an event
             if (googleCalendarService.isConnected()) {

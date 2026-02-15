@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import { BandRequest, BandRequestType, User } from '../../types';
 import {
     getInstrumentName,
@@ -54,8 +54,8 @@ export function BandRequestsPage() {
             }
 
             const [requestsData, usersData] = await Promise.all([
-                localRepository.getBandRequests(filters),
-                localRepository.getAllUsers(),
+                repository.getBandRequests(filters),
+                repository.getAllUsers(),
             ]);
 
             setRequests(requestsData);
@@ -262,14 +262,39 @@ export function BandRequestsPage() {
                                 </div>
 
                                 <div className="request-footer">
-                                    <div className="request-members">
-                                        <Users size={16} />
-                                        <span className="members-count">
-                                            {openSlots > 0
-                                                ? `נותרו ${openSlots} מקומות`
-                                                : 'מלא'
-                                            }
-                                        </span>
+                                    <div className="footer-left">
+                                        <div className="member-stack">
+                                            {request.currentMembers?.slice(0, 4).map(memberId => {
+                                                const m = users[memberId];
+                                                return m?.avatarUrl ? (
+                                                    <img
+                                                        key={memberId}
+                                                        src={m.avatarUrl}
+                                                        alt={m.displayName}
+                                                        className="stack-avatar"
+                                                        title={m.displayName}
+                                                    />
+                                                ) : (
+                                                    <div key={memberId} className="stack-avatar placeholder">
+                                                        {m?.displayName?.charAt(0) || '?'}
+                                                    </div>
+                                                );
+                                            })}
+                                            {request.currentMembers && request.currentMembers.length > 4 && (
+                                                <div className="stack-avatar more">
+                                                    +{request.currentMembers.length - 4}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="request-members">
+                                            <Users size={14} />
+                                            <span className="members-count">
+                                                {openSlots > 0
+                                                    ? `נותרו ${openSlots} מקומות`
+                                                    : 'מלא'
+                                                }
+                                            </span>
+                                        </div>
                                     </div>
                                     <span className="request-date">
                                         {formatDate(request.createdAt)}

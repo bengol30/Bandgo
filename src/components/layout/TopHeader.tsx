@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Bell, Settings } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import './Navigation.css';
 
 export function TopHeader() {
@@ -21,7 +21,7 @@ export function TopHeader() {
     const loadNotifications = async () => {
         if (!user) return;
         try {
-            const notifications = await localRepository.getNotifications(user.id);
+            const notifications = await repository.getNotifications(user.id);
             const unread = notifications.filter(n => !n.read).length;
             setUnreadCount(unread);
         } catch (error) {
@@ -48,7 +48,7 @@ export function TopHeader() {
             <div className="header-content">
                 <Link to="/" className="header-logo">
                     <span className="header-logo-icon">🎸</span>
-                    <span className="header-logo-text">Band.go</span>
+                    <span className="header-logo-text">BandGo</span>
                 </Link>
 
                 <div className="header-actions">

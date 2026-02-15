@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { X, Save, Target, Clock, Users, Music } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import { Band, BandCommitmentLevel } from '../../types';
 import './BandRefinementModal.css';
 
@@ -32,7 +32,7 @@ export function BandRefinementModal({ band, isOpen, onClose, onBandUpdated }: Ba
         setLoading(true);
 
         try {
-            const updatedBand = await localRepository.updateBand(band.id, {
+            const updatedBand = await repository.updateBand(band.id, {
                 commitmentLevel,
                 rehearsalFrequency,
                 targetAgeRange: {

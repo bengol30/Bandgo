@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import { Band, BandRequest, User, BandRequestType } from '../../types';
 import { GENRES, INSTRUMENTS } from '../../data/constants';
 import { getInstrumentName, getInstrumentIcon, getGenreName } from '../../utils';
@@ -33,7 +33,7 @@ export function BandsPage() {
     const [bands, setBands] = useState<Band[]>([]);
     const [requests, setRequests] = useState<BandRequest[]>([]);
     const [users, setUsers] = useState<Record<string, User>>({});
-    const [userBands, setUserBands] = useState<Band[]>([]); // User's bands
+    const [myItems, setMyItems] = useState<(Band | BandRequest)[]>([]); // User's bands & requests
 
     // Filters
     const [searchQuery, setSearchQuery] = useState('');
@@ -55,20 +55,28 @@ export function BandsPage() {
         try {
             setLoading(true);
             const [bandsData, requestsData, usersData] = await Promise.all([
-                localRepository.getBands(),
-                localRepository.getBandRequests(),
-                localRepository.getAllUsers(),
+                repository.getBands(),
+                repository.getBandRequests(),
+                repository.getAllUsers(),
             ]);
 
             setBands(bandsData);
             setRequests(requestsData);
 
-            // Find user's bands
+            // Find user's bands and requests
             if (user) {
                 const myBands = bandsData.filter(band =>
                     band.members?.some(m => m.userId === user.id)
                 );
-                setUserBands(myBands);
+
+                // Only include OPEN requests where user is member/creator and NOT yet formed/closed
+                // Note: Formed requests should be bands now, so we filter by status 'open' or 'targeted' usually
+                const myRequests = requestsData.filter(req =>
+                    (req.creatorId === user.id || req.currentMembers.includes(user.id)) &&
+                    req.status !== 'formed' && req.status !== 'closed'
+                );
+
+                setMyItems([...myBands, ...myRequests]);
             }
 
             const usersMap: Record<string, User> = {};
@@ -175,56 +183,70 @@ export function BandsPage() {
                         <h1 className="page-title">להקות והרכבים</h1>
                         <p className="page-subtitle">מצא את השותפים המוזיקליים הבאים שלך</p>
                     </div>
-                    {userBands.length > 0 ? (
+                    {myItems.length > 0 ? (
                         <div className="header-actions">
-                            {userBands.length === 1 ? (
-                                <button className="new-band-btn" onClick={() => navigate(`/bands/${userBands[0].id}/workspace`)}>
-                                    <Users size={20} />
-                                    <span>הלהקה שלי</span>
-                                </button>
-                            ) : (
-                                <button className="new-band-btn" onClick={scrollToMyBands}>
-                                    <Users size={20} />
-                                    <span>הלהקות שלי ({userBands.length})</span>
-                                </button>
-                            )}
+                            <button className="new-band-btn" onClick={scrollToMyBands}>
+                                <Users size={20} />
+                                <span>הפרויקטים שלי ({myItems.length})</span>
+                            </button>
                         </div>
                     ) : (
                         <button className="new-band-btn" onClick={handleCreate}>
                             <Plus size={20} />
-                            <span>צור להקה חדשה</span>
+                            <span>צור הרכב חדש</span>
                         </button>
                     )}
                 </div>
             </header>
 
-            {/* My Bands Section (Visible if user has bands) */}
-            {userBands.length > 0 && (
+            {/* My Bands & Requests Section */}
+            {myItems.length > 0 && (
                 <div id="my-bands-section" className="my-bands-section">
                     <div className="section-header">
-                        <h2 className="section-title-small">הלהקות שלי</h2>
+                        <h2 className="section-title-small">הפרויקטים שלי</h2>
                         <button className="btn-text" onClick={handleCreate}>
                             <Plus size={16} />
-                            <span>להקה חדשה</span>
+                            <span>הרכב חדש</span>
                         </button>
                     </div>
                     <div className="my-bands-scroll">
-                        {userBands.map(band => (
-                            <Link key={band.id} to={`/bands/${band.id}/workspace`} className="my-band-card-mini">
-                                <div className="mini-cover">
-                                    {band.coverImageUrl ? (
-                                        <img src={band.coverImageUrl} alt={band.name} />
-                                    ) : (
-                                        <Music size={24} />
-                                    )}
-                                </div>
-                                <div className="mini-info">
-                                    <h3>{band.name}</h3>
-                                    <span>{band.members.length} חברים</span>
-                                </div>
-                                <ChevronDown size={16} style={{ transform: 'rotate(90deg)', opacity: 0.5 }} />
-                            </Link>
-                        ))}
+                        {myItems.map(item => {
+                            const isBand = 'members' in item && Array.isArray((item as any).members) && (item as any).members[0]?.userId; // Rough check for Band type vs Request
+                            // Check for Band type properties: members array with userId objects
+                            // BandRequest has currentMembers array of strings
+
+                            const isRealBand = 'approvedRehearsalsCount' in item;
+                            const linkTo = isRealBand ? `/bands/${item.id}/workspace` : `/requests/${item.id}`;
+                            const name = isRealBand ? (item as Band).name : (item as BandRequest).title;
+                            const memberCount = isRealBand ? (item as Band).members.length : (item as BandRequest).currentMembers.length;
+                            const image = isRealBand ? (item as Band).coverImageUrl : null;
+
+                            return (
+                                <Link
+                                    key={item.id}
+                                    to={linkTo}
+                                    className={`my-band-card-mini ${isRealBand ? 'type-band' : 'type-request'}`}
+                                >
+                                    <div className="mini-cover">
+                                        {image ? (
+                                            <img src={image} alt={name} />
+                                        ) : (
+                                            <Music size={24} />
+                                        )}
+                                        {!isRealBand && <div className="mini-badge">גיוס</div>}
+                                    </div>
+                                    <div className="mini-info">
+                                        <h3>{name}</h3>
+                                        {isRealBand ? (
+                                            <span className="status-text band">פעיל</span>
+                                        ) : (
+                                            <span className="status-text request">מגייס</span>
+                                        )}
+                                    </div>
+                                    <ChevronDown size={16} style={{ transform: 'rotate(90deg)', opacity: 0.5 }} />
+                                </Link>
+                            );
+                        })}
                     </div>
                 </div>
             )}
@@ -454,6 +476,47 @@ function UnifiedBandCard({ item, type, users, to }: UnifiedBandCardProps) {
                     ))}
                 </div>
 
+                {/* Members Stack */}
+                <div className="card-members-section">
+                    <div className="card-members">
+                        <div className="member-stack">
+                            {type === 'hiring' ? (
+                                // For requests: currentMembers is string[]
+                                (anyItem.currentMembers || []).slice(0, 4).map((memberId: string) => {
+                                    const u = users[memberId];
+                                    return u?.avatarUrl ? (
+                                        <img key={memberId} src={u.avatarUrl} alt="" className="stack-avatar" />
+                                    ) : (
+                                        <div key={memberId} className="stack-avatar placeholder">
+                                            {u?.displayName?.charAt(0) || '?'}
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                // For bands: members is {userId, instrumentId}[]
+                                (anyItem.members || []).slice(0, 4).map((m: any) => {
+                                    const u = users[m.userId];
+                                    return u?.avatarUrl ? (
+                                        <img key={m.userId} src={u.avatarUrl} alt="" className="stack-avatar" />
+                                    ) : (
+                                        <div key={m.userId} className="stack-avatar placeholder">
+                                            {u?.displayName?.charAt(0) || '?'}
+                                        </div>
+                                    );
+                                })
+                            )}
+                            {((type === 'hiring' ? anyItem.currentMembers : anyItem.members) || []).length > 4 && (
+                                <div className="stack-avatar more">
+                                    +{(type === 'hiring' ? anyItem.currentMembers : anyItem.members).length - 4}
+                                </div>
+                            )}
+                        </div>
+                        <span className="members-count-label">
+                            {(type === 'hiring' ? anyItem.currentMembers : anyItem.members)?.length || 0} חברים
+                        </span>
+                    </div>
+                </div>
+
                 {/* Specific Content per Type */}
                 {type === 'hiring' ? (
                     <div className="card-slots">
@@ -481,22 +544,7 @@ function UnifiedBandCard({ item, type, users, to }: UnifiedBandCardProps) {
                         )}
                     </div>
                 ) : (
-                    <div className="card-members-section">
-                        <div className="card-members mb-sm">
-                            <div className="member-stack">
-                                {anyItem.members?.slice(0, 3).map((m: any) => {
-                                    const u = users[m.userId];
-                                    return u?.avatarUrl ? (
-                                        <img key={m.userId} src={u.avatarUrl} alt="" />
-                                    ) : null;
-                                })}
-                            </div>
-                            <span className="members-count-label text-xs text-secondary">
-                                {anyItem.members?.length} חברים
-                            </span>
-                        </div>
-                        <BandProgress band={item as Band} compact={true} />
-                    </div>
+                    <BandProgress band={item as Band} compact={true} />
                 )}
             </div>
         </Link>

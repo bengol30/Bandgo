@@ -16,12 +16,16 @@ import {
     X,
     AlertCircle,
     UserPlus,
-    UserMinus
+    UserMinus,
+    Clock,
+    Zap,
+    ExternalLink,
+    Play
 } from 'lucide-react';
 import { ApplicationStatus } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import { BandRequest, User, BandRequestType, BandApplication, BandRequestStatus } from '../../types';
 import { getInstrumentName, getInstrumentIcon, getGenreName, formatTimeAgo } from '../../utils';
 import './BandRequestDetails.css';
@@ -43,6 +47,7 @@ export function BandRequestDetailsPage() {
     // Application management state (for creator)
     const [applications, setApplications] = useState<BandApplication[]>([]);
     const [applicantUsers, setApplicantUsers] = useState<Record<string, User>>({});
+    const [currentMembers, setCurrentMembers] = useState<User[]>([]);
     const [reviewingId, setReviewingId] = useState<string | null>(null);
 
     // Band naming modal state
@@ -58,7 +63,7 @@ export function BandRequestDetailsPage() {
     const loadRequest = async (requestId: string) => {
         try {
             setLoading(true);
-            const req = await localRepository.getBandRequest(requestId);
+            const req = await repository.getBandRequest(requestId);
             if (!req) {
                 showToast('ההרכב לא נמצא', 'error');
                 navigate('/bands');
@@ -67,23 +72,29 @@ export function BandRequestDetailsPage() {
             setRequest(req);
 
             // Load creator
-            const creatorUser = await localRepository.getUser(req.creatorId);
+            const creatorUser = await repository.getUser(req.creatorId);
             setCreator(creatorUser);
 
             // Check if already applied
             if (user) {
-                const apps = await localRepository.getMyApplications(user.id);
+                const apps = await repository.getMyApplications(user.id);
                 const existingApp = apps.find(a => a.bandRequestId === requestId);
                 setHasApplied(!!existingApp);
             }
 
+            // Load current members
+            if (req.currentMembers && req.currentMembers.length > 0) {
+                const members = await repository.getUsersByIds(req.currentMembers);
+                setCurrentMembers(members);
+            }
+
             // Load applications if creator
             if (user && user.id === req.creatorId) {
-                const apps = await localRepository.getApplications(requestId);
+                const apps = await repository.getApplications(requestId);
                 setApplications(apps);
 
                 // Load applicant user info
-                const allUsers = await localRepository.getAllUsers();
+                const allUsers = await repository.getAllUsers();
                 const usersMap: Record<string, User> = {};
                 allUsers.forEach((u: User) => { usersMap[u.id] = u; });
                 setApplicantUsers(usersMap);
@@ -112,7 +123,7 @@ export function BandRequestDetailsPage() {
 
         try {
             setApplying(true);
-            await localRepository.createApplication({
+            await repository.createApplication({
                 bandRequestId: request.id,
                 applicantId: user.id,
                 instrumentId: selectedInstrument || 'unknown',
@@ -133,7 +144,7 @@ export function BandRequestDetailsPage() {
     const handleReviewApplication = async (appId: string, status: 'approved' | 'rejected') => {
         try {
             setReviewingId(appId);
-            await localRepository.reviewApplication(appId, status);
+            await repository.reviewApplication(appId, status);
             showToast(
                 status === 'approved' ? 'המועמד אושר בהצלחה! 🎉' : 'המועמדות נדחתה',
                 status === 'approved' ? 'success' : 'info'
@@ -141,9 +152,9 @@ export function BandRequestDetailsPage() {
 
             // Reload data after review
             if (id) {
-                const req = await localRepository.getBandRequest(id);
+                const req = await repository.getBandRequest(id);
                 setRequest(req);
-                const apps = await localRepository.getApplications(id);
+                const apps = await repository.getApplications(id);
                 setApplications(apps);
             }
         } catch (error) {
@@ -157,7 +168,7 @@ export function BandRequestDetailsPage() {
         if (!request) return;
         const finalName = bandName.trim() || request.title;
         try {
-            const newBand = await localRepository.convertRequestToBand(request.id, finalName);
+            const newBand = await repository.formBand(request.id, finalName);
             showToast('מזל טוב! הלהקה נוצרה בהצלחה 🎉', 'success');
             setShowBandNameModal(false);
             navigate(`/bands/${newBand.id}/workspace`);
@@ -180,16 +191,24 @@ export function BandRequestDetailsPage() {
     const isClosed = request.status === BandRequestStatus.CLOSED || request.status === BandRequestStatus.FORMED;
     const pendingApps = applications.filter(a => a.status === ApplicationStatus.PENDING);
     const reviewedApps = applications.filter(a => a.status !== ApplicationStatus.PENDING);
-    const canConvert = request.currentMembers.length >= 2;
+    const canConvert = (request.currentMembers?.length || 0) >= 1;
 
     return (
         <div className="page page-request-details">
             {/* Header Image / Pattern */}
             <div className="details-hero">
                 <div className="details-hero-content">
-                    <button className="back-btn" onClick={() => navigate(-1)}>
-                        <ArrowLeft />
-                    </button>
+                    <div className="hero-actions">
+                        <button className="back-btn" onClick={() => navigate(-1)}>
+                            <ArrowLeft />
+                        </button>
+                        <button className="share-btn" onClick={() => {
+                            navigator.clipboard.writeText(window.location.href);
+                            showToast('הקישור הועתק ללוח! 📋', 'success');
+                        }} title="שתף הרכב">
+                            <Share2 />
+                        </button>
+                    </div>
                     <div className="hero-tags">
                         <span className="badge badge-accent">
                             {request.type === BandRequestType.TARGETED ? 'חיפוש ממוקד' : 'הרכב פתוח'}
@@ -360,13 +379,64 @@ export function BandRequestDetailsPage() {
                                             </button>
                                         ) : (
                                             <div className="alert alert-info text-sm">
-                                                כדי להפוך ללהקה, עליך לאשר לפחות חבר אחד נוסף (מינימום 2 חברים).
+                                                כדי להפוך ללהקה, עליך לאשר לפחות חבר אחד נוסף.
                                             </div>
                                         )}
                                     </div>
                                 </div>
                             </section>
                         )}
+                        {/* Members List (Public) */}
+                        <section className="details-section members-section">
+                            <div className="section-header">
+                                <h2>
+                                    <Users size={20} />
+                                    חברי ההרכב {currentMembers.length > 0 && `(${currentMembers.length})`}
+                                </h2>
+                            </div>
+                            {currentMembers.length > 0 ? (
+                                <div className="members-horizontal-list">
+                                    {currentMembers.map(member => (
+                                        <div
+                                            key={member.id}
+                                            className="member-profile-card"
+                                            onClick={() => navigate(`/profile/${member.id}`)}
+                                        >
+                                            <div className="member-avatar-wrapper">
+                                                {member.avatarUrl ? (
+                                                    <img src={member.avatarUrl} alt={member.displayName} />
+                                                ) : (
+                                                    <div className="avatar-placeholder">{member.displayName[0]}</div>
+                                                )}
+                                                {member.id === request.creatorId && (
+                                                    <div className="leader-badge" title="מנהל ההרכב">
+                                                        <Zap size={10} fill="currentColor" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="member-name">{member.displayName}</div>
+                                            <div className="member-role">
+                                                {member.id === request.creatorId ? 'מנהל' : 'חבר'}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {!isClosed && (
+                                        <div className="member-profile-card placeholder">
+                                            <div className="member-avatar-wrapper empty">
+                                                <UserPlus size={20} />
+                                            </div>
+                                            <div className="member-name">מקום פנוי</div>
+                                            <div className="member-role">מחכים לך</div>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="empty-members-state">
+                                    <Users size={24} />
+                                    <p>עדיין אין חברים מאושרים. היה הראשון להצטרף!</p>
+                                </div>
+                            )}
+                        </section>
 
                         <section className="details-section">
                             <h2>על הפרויקט</h2>
@@ -379,6 +449,51 @@ export function BandRequestDetailsPage() {
                                     </span>
                                 ))}
                             </div>
+
+                            {/* Influences */}
+                            {request.influences && request.influences.length > 0 && (
+                                <div className="influences-section">
+                                    <h3>השראות מוזיקליות</h3>
+                                    <div className="influences-list">
+                                        {request.influences.map((inf, i) => (
+                                            <span key={i} className="influence-tag">
+                                                <Music size={12} />
+                                                {inf}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Media / Sketches */}
+                            {(request.sketches?.length > 0 || request.sketchPending) && (
+                                <div className="media-section">
+                                    <h3>סקיצות והקלטות</h3>
+                                    {request.sketches?.length > 0 ? (
+                                        <div className="media-grid">
+                                            {request.sketches.map(media => (
+                                                <div key={media.id} className="media-item">
+                                                    <div className="media-icon-wrapper">
+                                                        {media.type === 'audio' ? <Mic2 size={24} /> : <Play size={24} />}
+                                                    </div>
+                                                    <div className="media-info">
+                                                        <h4>{media.name}</h4>
+                                                        <a href={media.url} target="_blank" rel="noopener noreferrer" className="media-link">
+                                                            <ExternalLink size={14} />
+                                                            <span>נגן סקיצה</span>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="empty-media-state">
+                                            <AlertCircle size={20} />
+                                            <span>טרם הועלו סקיצות, אך ניתן לפנות ליוצר לקבלת חומרים.</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </section>
 
                         {/* Slots */}
@@ -391,10 +506,22 @@ export function BandRequestDetailsPage() {
                                         const total = slot.quantity;
                                         const isFull = filled >= total;
 
+                                        const isSelected = selectedInstrument === slot.instrumentId;
+
                                         return (
-                                            <div key={idx} className={`slot-card ${isFull ? 'filled' : 'open'}`}>
+                                            <div
+                                                key={idx}
+                                                className={`slot-card ${isFull ? 'filled' : 'open'} ${isSelected ? 'selected' : ''}`}
+                                                onClick={() => !isFull && !isCreator && !hasApplied && !isClosed && setSelectedInstrument(slot.instrumentId)}
+                                                style={{ cursor: !isFull && !isCreator && !hasApplied && !isClosed ? 'pointer' : 'default' }}
+                                            >
                                                 <div className="slot-icon-wrapper">
                                                     <span className="slot-icon-lg">{getInstrumentIcon(slot.instrumentId)}</span>
+                                                    {isSelected && (
+                                                        <div className="slot-selected-badge">
+                                                            <Check size={14} />
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="slot-info">
                                                     <h3>{getInstrumentName(slot.instrumentId)}</h3>
@@ -408,10 +535,17 @@ export function BandRequestDetailsPage() {
                                                 </div>
                                                 {!isFull && !isCreator && !hasApplied && !isClosed && (
                                                     <button
-                                                        className={`btn-apply-slot ${selectedInstrument === slot.instrumentId ? 'active' : ''}`}
-                                                        onClick={() => setSelectedInstrument(slot.instrumentId)}
+                                                        className={`btn-apply-slot ${isSelected ? 'active' : ''}`}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedInstrument(slot.instrumentId);
+                                                        }}
                                                     >
-                                                        אני מנגן!
+                                                        {isSelected ? (
+                                                            <><Check size={16} /> נבחר</>
+                                                        ) : (
+                                                            'אני מנגן!'
+                                                        )}
                                                     </button>
                                                 )}
                                             </div>
@@ -503,6 +637,38 @@ export function BandRequestDetailsPage() {
                                     </div>
                                 </div>
                             </div>
+
+                            {request.commitmentLevel && (
+                                <div className="info-item">
+                                    <Zap size={20} />
+                                    <div>
+                                        <label>רמת מחויבות</label>
+                                        <p>{request.commitmentLevel === 'hobby' ? 'תחביב (כיף)' :
+                                            request.commitmentLevel === 'intermediate' ? 'רציני (חצי מקצועי)' :
+                                                'מקצועי (קריירה)'}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {request.rehearsalFrequency && (
+                                <div className="info-item">
+                                    <Clock size={20} />
+                                    <div>
+                                        <label>תדירות חזרות</label>
+                                        <p>{request.rehearsalFrequency}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {request.targetAgeRange && (
+                                <div className="info-item">
+                                    <Users size={20} />
+                                    <div>
+                                        <label>טווח גילאים</label>
+                                        <p>{request.targetAgeRange.min} - {request.targetAgeRange.max}</p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </aside>
                 </div>

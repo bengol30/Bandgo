@@ -8,7 +8,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowRight, Send, Image, Smile, Wifi, WifiOff } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import { useDirectChat } from '../../hooks/useChat';
 import type { User, Conversation } from '../../types';
 import { formatDate } from '../../utils';
@@ -65,8 +65,8 @@ export function DirectChatPage() {
         if (!conversationId) return;
         try {
             const [convData, usersData] = await Promise.all([
-                localRepository.getConversations(),
-                localRepository.getAllUsers(),
+                repository.getConversations(),
+                repository.getAllUsers(),
             ]);
 
             const conv = convData.find(c => c.id === conversationId);

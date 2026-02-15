@@ -24,6 +24,7 @@ import {
     InstrumentLevel,
     BandRequestType,
     BandRequestStatus,
+    BandCommitmentLevel,
     ApplicationStatus,
     RehearsalStatus,
     PostType,
@@ -262,8 +263,27 @@ export const mockBandRequests: BandRequest[] = [
             { instrumentId: 'keyboard', quantity: 1, filledBy: [] },
         ],
         currentMembers: ['user-1'],
-        sketches: [],
+        sketches: [
+            {
+                id: 'sketch-1',
+                name: 'סקיצה - שיר 1',
+                url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+                type: 'audio',
+                createdAt: new Date()
+            },
+            {
+                id: 'sketch-2',
+                name: 'רעיון לריף - גיטרה',
+                url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+                type: 'audio',
+                createdAt: new Date()
+            }
+        ],
         sketchPending: true,
+        commitmentLevel: BandCommitmentLevel.PROFESSIONAL,
+        rehearsalFrequency: 'פעמיים בשבוע',
+        targetAgeRange: { min: 20, max: 35 },
+        influences: ['Radiohead', 'Arctic Monkeys', 'Nirvana', 'Foo Fighters'],
         createdAt: new Date('2024-02-01'),
         updatedAt: new Date('2024-02-01'),
     },
@@ -283,6 +303,9 @@ export const mockBandRequests: BandRequest[] = [
         currentMembers: ['user-2'],
         sketches: [],
         sketchPending: false,
+        commitmentLevel: BandCommitmentLevel.HOBBY,
+        rehearsalFrequency: 'פעם בשבוע',
+        influences: ['Miles Davis', 'John Coltrane', 'Ella Fitzgerald'],
         createdAt: new Date('2024-02-03'),
         updatedAt: new Date('2024-02-03'),
     },
@@ -307,6 +330,8 @@ export const mockBandRequests: BandRequest[] = [
         currentMembers: ['user-3'],
         sketches: [],
         sketchPending: true,
+        commitmentLevel: BandCommitmentLevel.INTERMEDIATE,
+        rehearsalFrequency: 'פעם בשבועיים',
         createdAt: new Date('2024-02-05'),
         updatedAt: new Date('2024-02-05'),
     },
@@ -610,10 +635,10 @@ export const mockDirectMessages: DirectMessage[] = [
 ];
 
 // ============ MOCK REPORTS ============
-export const mockReports: AppReport[] = [
+export const mockReports: Report[] = [
     {
         id: 'rep-1',
-        reporterId: 'user-2',
+        reportedByUserId: 'user-2',
         targetType: 'post',
         targetId: 'post-1',
         reason: 'תוכן לא הולם',
@@ -622,14 +647,13 @@ export const mockReports: AppReport[] = [
     },
     {
         id: 'rep-2',
-        reporterId: 'user-4',
+        reportedByUserId: 'user-4',
         targetType: 'user',
         targetId: 'user-3',
         reason: 'הטרדה חוזרת',
         status: 'reviewed',
-        reviewedBy: 'admin-1',
         reviewNote: 'נחסם לשבוע',
         createdAt: new Date('2024-02-02T14:30:00'),
-        reviewedAt: new Date('2024-02-02T15:00:00'),
+        resolvedAt: new Date('2024-02-02T15:00:00'),
     }
 ];

@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import { Band, Event, EventRegistration } from '../../types';
 import { INSTRUMENTS, GENRES } from '../../data/constants';
 import { ExtendedProfileWizard } from '../../components/profile/ExtendedProfileWizard';
@@ -53,9 +53,9 @@ export function ProfilePage() {
             setLoading(true);
 
             const [bandsData, registrationsData, eventsData] = await Promise.all([
-                localRepository.getMyBands(user!.id),
-                localRepository.getMyEventRegistrations(user!.id),
-                localRepository.getEvents(),
+                repository.getMyBands(user!.id),
+                repository.getMyEventRegistrations(user!.id),
+                repository.getEvents(),
             ]);
 
             setMyBands(bandsData);

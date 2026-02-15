@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { localRepository } from '../repositories/LocalRepository';
+import { repository } from '../repositories';
 import { chatService } from '../services/ChatService';
 import type { ChatMessage, DirectMessage } from '../types';
 
@@ -30,7 +30,7 @@ export function useBandChat({ bandId, pollingInterval = 3000 }: UseBandChatOptio
     // Load messages
     const loadMessages = useCallback(async () => {
         try {
-            const data = await localRepository.getChatMessages(bandId);
+            const data = await repository.getChatMessages(bandId);
             setMessages(data);
 
             // Track last message for polling comparison
@@ -47,7 +47,7 @@ export function useBandChat({ bandId, pollingInterval = 3000 }: UseBandChatOptio
     // Check for new messages (polling)
     const checkForNewMessages = useCallback(async () => {
         try {
-            const data = await localRepository.getChatMessages(bandId);
+            const data = await repository.getChatMessages(bandId);
 
             // Only update if there are new messages
             if (data.length > 0) {
@@ -68,7 +68,7 @@ export function useBandChat({ bandId, pollingInterval = 3000 }: UseBandChatOptio
 
         setSending(true);
         try {
-            const message = await localRepository.sendChatMessage(bandId, content.trim());
+            const message = await repository.sendChatMessage(bandId, content.trim());
 
             // Optimistic update
             setMessages(prev => [...prev, message]);
@@ -92,7 +92,7 @@ export function useBandChat({ bandId, pollingInterval = 3000 }: UseBandChatOptio
     // Initial load
     useEffect(() => {
         loadMessages();
-        localRepository.markChatAsRead(bandId);
+        repository.markChatAsRead(bandId);
     }, [bandId, loadMessages]);
 
     // Subscribe to real-time events
@@ -162,7 +162,7 @@ export function useDirectChat({ conversationId, pollingInterval = 3000 }: UseDir
 
     const loadMessages = useCallback(async () => {
         try {
-            const data = await localRepository.getDirectMessages(conversationId);
+            const data = await repository.getDirectMessages(conversationId);
             setMessages(data);
 
             if (data.length > 0) {
@@ -177,7 +177,7 @@ export function useDirectChat({ conversationId, pollingInterval = 3000 }: UseDir
 
     const checkForNewMessages = useCallback(async () => {
         try {
-            const data = await localRepository.getDirectMessages(conversationId);
+            const data = await repository.getDirectMessages(conversationId);
 
             if (data.length > 0) {
                 const newLastId = data[data.length - 1].id;
@@ -196,7 +196,7 @@ export function useDirectChat({ conversationId, pollingInterval = 3000 }: UseDir
 
         setSending(true);
         try {
-            const message = await localRepository.sendDirectMessage(conversationId, content.trim());
+            const message = await repository.sendDirectMessage(conversationId, content.trim());
 
             setMessages(prev => [...prev, message]);
             lastMessageIdRef.current = message.id;
@@ -217,7 +217,7 @@ export function useDirectChat({ conversationId, pollingInterval = 3000 }: UseDir
 
     useEffect(() => {
         loadMessages();
-        localRepository.markDirectMessagesAsRead(conversationId);
+        repository.markDirectMessagesAsRead(conversationId);
     }, [conversationId, loadMessages]);
 
     useEffect(() => {
@@ -278,12 +278,12 @@ export function useUnreadCounts(bandIds: string[]): UseUnreadCountsReturn {
             // Load band unread counts
             const counts: Record<string, number> = {};
             for (const bandId of bandIds) {
-                counts[bandId] = await localRepository.getUnreadChatCount(bandId);
+                counts[bandId] = await repository.getUnreadChatCount(bandId);
             }
             setBandUnreadCounts(counts);
 
             // Load direct message unread count
-            const directCount = await localRepository.getUnreadDirectMessageCount();
+            const directCount = await repository.getUnreadDirectMessageCount();
             setTotalDirectUnread(directCount);
         } catch (error) {
             console.error('Failed to load unread counts:', error);

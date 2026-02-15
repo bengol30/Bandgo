@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageCircle, Search } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import type { Conversation, User } from '../../types';
 import { formatDate } from '../../utils';
 import './Messages.css';
@@ -28,8 +28,8 @@ export function MessagesPage() {
         try {
             setLoading(true);
             const [convData, usersData] = await Promise.all([
-                localRepository.getConversations(),
-                localRepository.getAllUsers(),
+                repository.getConversations(),
+                repository.getAllUsers(),
             ]);
 
             setConversations(convData);

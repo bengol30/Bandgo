@@ -19,7 +19,7 @@ import {
     Lock as LockIcon
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import { useToast } from '../../contexts/ToastContext';
 import { User, PerformanceRequest, Event, Band, PerformanceRequestStatus, EventType, SystemSettings, Report as AppReport, UserRole, EventSubmission, EventSubmissionStatus } from '../../types';
 import { Modal, ConfirmDialog } from '../../components/Modal';
@@ -31,12 +31,11 @@ export function AdminPage() {
     const { showToast } = useToast();
     const navigate = useNavigate();
 
-    const [activeTab, setActiveTab] = useState<'overview' | 'requests' | 'users' | 'events' | 'settings' | 'reports' | 'submissions'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'bands' | 'users' | 'events' | 'settings' | 'reports' | 'submissions'>('overview');
     const [loading, setLoading] = useState(true);
 
     const [stats, setStats] = useState({
         users: 0,
-        requests: 0,
         bands: 0,
         events: 0,
         reports: 0,
@@ -44,7 +43,7 @@ export function AdminPage() {
     });
 
     const [users, setUsers] = useState<User[]>([]);
-    const [requests, setRequests] = useState<PerformanceRequest[]>([]);
+    const [bands, setBands] = useState<Band[]>([]);
     const [events, setEvents] = useState<Event[]>([]);
     const [bandsMap, setBandsMap] = useState<Record<string, Band>>({});
     const [settings, setSettings] = useState<SystemSettings | null>(null);
@@ -65,10 +64,6 @@ export function AdminPage() {
     const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
     const [submissionNote, setSubmissionNote] = useState('');
 
-    const [showRejectModal, setShowRejectModal] = useState(false);
-    const [rejectRequestId, setRejectRequestId] = useState<string | null>(null);
-    const [rejectReason, setRejectReason] = useState('');
-
     // New Event Form State
     const [newEventTitle, setNewEventTitle] = useState('');
 
@@ -88,21 +83,20 @@ export function AdminPage() {
             // Fetch core stats and initial data if not loaded
             if (tabToLoad === 'overview' || !settings) {
                 const [allUsers, allRequests, allBands, allEvents, currentSettings, allReports] = await Promise.all([
-                    localRepository.getAllUsers(),
-                    localRepository.getAllPerformanceRequests(),
-                    localRepository.getBands(),
-                    localRepository.getEvents(),
-                    localRepository.getSystemSettings(),
-                    localRepository.getReports()
+                    repository.getAllUsers(),
+                    repository.getAllPerformanceRequests(),
+                    repository.getBands(),
+                    repository.getEvents(),
+                    repository.getSystemSettings(),
+                    repository.getReports()
                 ]);
 
                 setStats({
                     users: allUsers.length,
-                    requests: allRequests.length,
                     bands: allBands.length,
                     events: allEvents.length,
                     reports: allReports.filter(r => r.status === 'pending').length,
-                    submissions: (await localRepository.getPendingEventSubmissions()).length
+                    submissions: (await repository.getPendingEventSubmissions()).length
                 });
 
                 const bMap: Record<string, Band> = {};
@@ -112,9 +106,9 @@ export function AdminPage() {
 
                 // Fallthrough to set specific sets if this was the intended tab
                 if (tabToLoad === 'users') setUsers(allUsers);
-                if (tabToLoad === 'requests') setRequests(allRequests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
                 if (tabToLoad === 'events') setEvents(allEvents);
                 if (tabToLoad === 'reports') setReports(allReports.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+                if (tabToLoad === 'bands') setBands(allBands);
 
                 return;
             }
@@ -122,28 +116,29 @@ export function AdminPage() {
             // Selective Tab Loading
             switch (tabToLoad) {
                 case 'submissions':
-                    const allSubmissions = await localRepository.getAllEventSubmissions();
+                    const allSubmissions = await repository.getAllEventSubmissions();
                     console.log('AdminPage loaded submissions:', allSubmissions);
                     setSubmissions(allSubmissions);
                     break;
+                case 'bands': // Added bands case
+                    const allBands = await repository.getBands();
+                    setBands(allBands);
+                    break;
                 case 'users':
-                    const usersData = await localRepository.getAllUsers();
+                    const usersData = await repository.getAllUsers();
                     setUsers(usersData);
                     break;
-                case 'requests':
-                    const requestsData = await localRepository.getAllPerformanceRequests();
-                    setRequests(requestsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-                    break;
+
                 case 'events':
-                    const eventsData = await localRepository.getEvents();
+                    const eventsData = await repository.getEvents();
                     setEvents(eventsData);
                     break;
                 case 'reports':
-                    const reportsData = await localRepository.getReports();
+                    const reportsData = await repository.getReports();
                     setReports(reportsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
                     break;
                 case 'settings':
-                    const settingsData = await localRepository.getSystemSettings();
+                    const settingsData = await repository.getSystemSettings();
                     setSettings(settingsData);
                     break;
             }
@@ -156,75 +151,25 @@ export function AdminPage() {
         }
     };
 
-    const handleApproveRequest = async (req: PerformanceRequest) => {
-        const band = bandsMap[req.bandId];
+    const handleDeleteBand = (bandId: string) => {
+        const band = bands.find(b => b.id === bandId);
         openConfirmDialog(
-            'אישור בקשת הופעה',
-            `האם לאשר את הבקשה של להקת "${band?.name || 'להקה'}" וליצור אירוע הופעה?`,
+            'מחיקת להקה',
+            `האם אתה בטוח שברצונך למחוק את הלהקה "${band?.name || 'להקה'}"? פעולה זו היא בלתי הפיכה.`,
             async () => {
                 try {
-                    await localRepository.reviewPerformanceRequest(req.id, PerformanceRequestStatus.APPROVED);
-
-                    const newEvent = await localRepository.createEvent({
-                        title: `הופעה: ${band?.name || 'להקה'}`,
-                        description: `הופעה חיה של ${band?.name || 'להקה'}!`,
-                        type: EventType.BAND_PERFORMANCE,
-                        dateTime: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // Default 2 weeks from now
-                        location: 'סלון פטיפון',
-                        durationMinutes: 60,
-                        organizerId: user!.id,
-                        capacity: 50,
-                        price: 0,
-                        coverImageUrl: band?.coverImageUrl,
-                        createdBy: user!.id
-                    });
-
-                    if (band && band.members) {
-                        band.members.forEach(member => {
-                            localRepository.createNotification({
-                                userId: member.userId,
-                                type: 'performance_approved',
-                                title: 'הופעה אושרה!',
-                                body: `ההופעה של ${band.name} נקבעה ל-${newEvent.dateTime.toLocaleDateString()}.`,
-                                relatedEntityType: 'event',
-                                relatedEntityId: newEvent.id
-                            });
-                        });
-                    }
-
-                    showToast('הבקשה אושרה והאירוע נוצר!', 'success');
-                    loadData();
+                    await repository.forceDeleteBand(bandId);
+                    showToast('הלהקה נמחקה בהצלחה', 'success');
+                    loadData('bands');
                 } catch (error) {
                     console.error(error);
-                    showToast('שגיאה באישור הבקשה', 'error');
+                    showToast('שגיאה במחיקת הלהקה', 'error');
                 }
-            },
-            'warning'
+            }
         );
     };
 
-    const openRejectModal = (reqId: string) => {
-        setRejectRequestId(reqId);
-        setRejectReason('');
-        setShowRejectModal(true);
-    };
 
-    const handleRejectRequestConfirm = async () => {
-        if (!rejectRequestId || !rejectReason.trim()) {
-            showToast('יש להזין סיבת דחייה', 'error');
-            return;
-        }
-        try {
-            await localRepository.reviewPerformanceRequest(rejectRequestId, PerformanceRequestStatus.REJECTED, rejectReason);
-            showToast('הבקשה נדחתה', 'info');
-            setShowRejectModal(false);
-            setRejectRequestId(null);
-            setRejectReason('');
-            loadData();
-        } catch (error) {
-            showToast('שגיאה בדחיית הבקשה', 'error');
-        }
-    };
 
     // === EVENT SUBMISSION HANDLERS ===
 
@@ -234,7 +179,7 @@ export function AdminPage() {
             `האם לאשר את האירוע "${sub.title}" וליצור אותו בלוח האירועים?`,
             async () => {
                 try {
-                    await localRepository.approveEventSubmission(sub.id, user!.id);
+                    await repository.approveEventSubmission(sub.id, user!.id);
                     showToast('האירוע אושר ופורסם בהצלחה!', 'success');
                     loadData('submissions');
                 } catch (error) {
@@ -258,7 +203,7 @@ export function AdminPage() {
             return;
         }
         try {
-            await localRepository.rejectEventSubmission(selectedSubmissionId, submissionNote);
+            await repository.rejectEventSubmission(selectedSubmissionId, submissionNote);
             showToast('הבקשה נדחתה', 'info');
             setShowSubmissionRejectModal(false);
             loadData('submissions');
@@ -280,7 +225,7 @@ export function AdminPage() {
             return;
         }
         try {
-            await localRepository.requestChangesOnSubmission(selectedSubmissionId, submissionNote);
+            await repository.requestChangesOnSubmission(selectedSubmissionId, submissionNote);
             showToast('הבקשה הוחזרה לתיקונים', 'info');
             setShowSubmissionChangesModal(false);
             loadData('submissions');
@@ -297,6 +242,17 @@ export function AdminPage() {
         setShowConfirmModal(true);
     };
 
+    const handleSaveSettings = async () => {
+        if (!settings) return;
+        try {
+            await repository.updateSystemSettings(settings);
+            showToast('הגדרות נשמרו בהצלחה', 'success');
+        } catch (error) {
+            console.error('Failed to save settings:', error);
+            showToast('שגיאה בשמירת ההגדרות', 'error');
+        }
+    };
+
     const handleDeleteUser = (userId: string) => {
         const targetUser = users.find(u => u.id === userId);
         openConfirmDialog(
@@ -304,7 +260,7 @@ export function AdminPage() {
             `האם אתה בטוח שברצונך למחוק את "${targetUser?.displayName || 'משתמש'}"? פעולה זו לא ניתנת לביטול.`,
             async () => {
                 try {
-                    await localRepository.deleteUser(userId);
+                    await repository.deleteUser(userId);
                     showToast('המשתמש נמחק בהצלחה', 'success');
                     loadData();
                 } catch (error) {
@@ -320,7 +276,7 @@ export function AdminPage() {
             'האם אתה בטוח שברצונך למחוק אירוע זה? פעולה זו לא ניתנת לביטול.',
             async () => {
                 try {
-                    await localRepository.deleteEvent(eventId);
+                    await repository.deleteEvent(eventId);
                     showToast('האירוע נמחק בהצלחה', 'success');
                     loadData();
                 } catch (error) {
@@ -337,7 +293,7 @@ export function AdminPage() {
         }
 
         try {
-            await localRepository.createEvent({
+            await repository.createEvent({
                 title: newEventTitle,
                 description: 'אירוע יזום ע"י מנהל',
                 type: EventType.JAM,
@@ -368,7 +324,7 @@ export function AdminPage() {
     const handleResolveReportConfirm = async (status: 'reviewed' | 'dismissed') => {
         if (!selectedReportId) return;
         try {
-            await localRepository.resolveReport(selectedReportId, status, reportNote || undefined);
+            await repository.resolveReport(selectedReportId, status, reportNote || undefined);
             showToast(`הדיווח סומן כ-${status === 'reviewed' ? 'טופל' : 'נדחה'}`, 'success');
             setShowResolveReportModal(false);
             setSelectedReportId(null);
@@ -386,7 +342,7 @@ export function AdminPage() {
             `האם אתה בטוח שברצונך לחסום את "${targetUser?.displayName || 'משתמש'}"? המשתמש לא יוכל להתחבר למערכת.`,
             async () => {
                 try {
-                    await localRepository.updateUserRole(userId, UserRole.BANNED);
+                    await repository.updateUserRole(userId, UserRole.BANNED);
                     showToast('המשתמש נחסם בהצלחה', 'success');
                     loadData();
                 } catch (error) {
@@ -403,7 +359,7 @@ export function AdminPage() {
             `האם לקדם את "${targetUser?.displayName || 'משתמש'}" לתפקיד Moderator?`,
             async () => {
                 try {
-                    await localRepository.updateUserRole(userId, UserRole.MODERATOR);
+                    await repository.updateUserRole(userId, UserRole.MODERATOR);
                     showToast('המשתמש קודם בהצלחה', 'success');
                     loadData();
                 } catch (error) {
@@ -443,10 +399,10 @@ export function AdminPage() {
                     <button className={`tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
                         <LayoutDashboard size={16} /> סקירה
                     </button>
-                    <button className={`tab ${activeTab === 'requests' ? 'active' : ''}`} onClick={() => setActiveTab('requests')}>
+                    <button className={`tab ${activeTab === 'bands' ? 'active' : ''}`} onClick={() => setActiveTab('bands')}>
                         <Music size={18} />
-                        <span>בקשות להקה</span>
-                        {stats.requests > 0 && <span className="badge badge-primary badge-sm ml-2">{stats.requests}</span>}
+                        <span>להקות</span>
+                        {stats.bands > 0 && <span className="badge badge-secondary badge-sm ml-2">{stats.bands}</span>}
                     </button>
                     <button className={`tab ${activeTab === 'submissions' ? 'active' : ''}`} onClick={() => setActiveTab('submissions')}>
                         <Calendar size={18} />
@@ -492,13 +448,7 @@ export function AdminPage() {
                                     <span className="stat-label">אירועים מתוכננים</span>
                                 </div>
                             </div>
-                            <div className="stat-card">
-                                <div className="stat-icon"><TrendingUp size={24} /></div>
-                                <div className="stat-info">
-                                    <span className="stat-value">{stats.requests}</span>
-                                    <span className="stat-label">בקשות להופעה</span>
-                                </div>
-                            </div>
+
                             <div className="stat-card">
                                 <div className="stat-icon"><AlertTriangle size={24} /></div>
                                 <div className="stat-info">
@@ -509,61 +459,78 @@ export function AdminPage() {
                         </div>
                     )}
 
-                    {activeTab === 'requests' && (
+
+
+
+                    {activeTab === 'bands' && (
                         <div className="table-container">
+                            <h3 className="section-title mb-4 pt-4 px-4">להקות רשומות ({bands.length})</h3>
                             <table className="admin-table">
                                 <thead>
                                     <tr>
-                                        <th>להקה</th>
-                                        <th>תאריך מבוקש</th>
-                                        <th>סטטוס</th>
+                                        <th>שם הלהקה</th>
+                                        <th>ז'אנרים</th>
+                                        <th>חברים</th>
+                                        <th>נוצר ב</th>
                                         <th>פעולות</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {requests.map(req => (
-                                        <tr key={req.id}>
+                                    {bands.map(band => (
+                                        <tr
+                                            key={band.id}
+                                            onClick={() => navigate(`/bands/${band.id}`)}
+                                            className="cursor-pointer hover:bg-base-200 transition-colors"
+                                        >
                                             <td>
-                                                <div className="font-bold">{bandsMap[req.bandId]?.name || 'לא ידוע'}</div>
-                                                <div className="text-xs text-secondary">{req.notes}</div>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="avatar">
+                                                        <div className="w-10 h-10 rounded-full overflow-hidden">
+                                                            <img
+                                                                src={band.coverImageUrl || 'https://via.placeholder.com/150'}
+                                                                alt={band.name}
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="font-bold">{band.name}</div>
+                                                </div>
                                             </td>
                                             <td>
-                                                {req.preferredDateRange ? (
-                                                    <span className="text-sm">
-                                                        {new Date(req.preferredDateRange.start).toLocaleDateString()} -
-                                                        {new Date(req.preferredDateRange.end).toLocaleDateString()}
-                                                    </span>
-                                                ) : 'גמיש'}
+                                                <div className="flex flex-wrap gap-1">
+                                                    {band.genres.map(g => (
+                                                        <span key={g} className="badge badge-ghost badge-xs">{g}</span>
+                                                    ))}
+                                                </div>
                                             </td>
                                             <td>
-                                                <span className={`status-badge status-${req.status.toLowerCase()}`}>
-                                                    {req.status}
-                                                </span>
+                                                {band.members?.length || 0} חברים
                                             </td>
-                                            <td className="action-cell">
-                                                {req.status === PerformanceRequestStatus.SUBMITTED && (
-                                                    <>
-                                                        <button
-                                                            className="btn btn-icon-sm btn-ghost text-success"
-                                                            onClick={() => handleApproveRequest(req)}
-                                                            title="אשר וצור אירוע"
-                                                        >
-                                                            <Check size={18} />
-                                                        </button>
-                                                        <button
-                                                            className="btn btn-icon-sm btn-ghost text-error"
-                                                            onClick={() => openRejectModal(req.id)}
-                                                            title="דחה בקשה"
-                                                        >
-                                                            <X size={18} />
-                                                        </button>
-                                                    </>
-                                                )}
+                                            <td>
+                                                {new Date(band.createdAt).toLocaleDateString()}
+                                            </td>
+                                            <td>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteBand(band.id);
+                                                        }}
+                                                        className="btn btn-ghost btn-sm text-error"
+                                                        title="מחק להקה"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
-                                    {requests.length === 0 && (
-                                        <tr><td colSpan={4} className="text-center text-secondary py-4">אין בקשות להצגה</td></tr>
+                                    {bands.length === 0 && (
+                                        <tr>
+                                            <td colSpan={5} className="text-center p-8 text-secondary">
+                                                אין להקות רשומות במערכת
+                                            </td>
+                                        </tr>
                                     )}
                                 </tbody>
                             </table>
@@ -755,13 +722,25 @@ export function AdminPage() {
                                             </div>
 
                                             <div className="bg-tertiary p-3 rounded mb-4 text-sm">
+                                                {sub.coverUrl && (
+                                                    <div className="mb-3">
+                                                        <img src={sub.coverUrl} alt="Event Cover" className="w-full h-32 object-cover rounded" />
+                                                    </div>
+                                                )}
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <div><strong>סוג:</strong> {sub.type}</div>
                                                     <div><strong>תאריך:</strong> {new Date(sub.startAt).toLocaleString()}</div>
                                                     <div><strong>מיקום:</strong> {sub.locationText}</div>
                                                     <div><strong>צפי:</strong> {sub.capacity || 'ללא הגבלה'}</div>
+                                                    <div><strong>מחיר:</strong> {sub.price ? `₪${sub.price}` : 'חינם'}</div>
+                                                    <div><strong>הרשמה:</strong> {sub.registrationEnabled ? 'כן' : 'לא'}</div>
                                                 </div>
-                                                <div className="mt-2 text-secondary">
+                                                {sub.paymentDetails && (
+                                                    <div className="mt-2 p-2 bg-base-200 rounded">
+                                                        <strong>פרטי תשלום:</strong> {sub.paymentDetails}
+                                                    </div>
+                                                )}
+                                                <div className="mt-2 text-secondary whitespace-pre-wrap">
                                                     {sub.description}
                                                 </div>
                                             </div>
@@ -806,9 +785,13 @@ export function AdminPage() {
                                     <label className="label">יעד חזרות שבועי (ברירת מחדל)</label>
                                     <input
                                         type="number"
+                                        min="1"
                                         className="input w-full"
-                                        value={settings.rehearsalGoal}
-                                        onChange={(e) => setSettings({ ...settings, rehearsalGoal: parseInt(e.target.value) })}
+                                        value={settings.rehearsalGoal || ''}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            setSettings({ ...settings, rehearsalGoal: isNaN(val) ? 0 : val });
+                                        }}
                                     />
                                     <p className="text-xs text-secondary mt-1">מספר חזרות מומלץ ללהקה חדשה</p>
                                 </div>
@@ -816,10 +799,26 @@ export function AdminPage() {
                                     <label className="label">משך סקר (שעות)</label>
                                     <input
                                         type="number"
+                                        min="1"
                                         className="input w-full"
-                                        value={settings.pollDurationHours}
-                                        onChange={(e) => setSettings({ ...settings, pollDurationHours: parseInt(e.target.value) })}
+                                        value={settings.pollDurationHours || ''}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            setSettings({ ...settings, pollDurationHours: isNaN(val) ? 0 : val });
+                                        }}
                                     />
+                                </div>
+                                <div className="form-group">
+                                    <label className="label cursor-pointer justify-start gap-4">
+                                        <input
+                                            type="checkbox"
+                                            className="toggle toggle-primary"
+                                            checked={!!settings.autoFinalizePoll}
+                                            onChange={(e) => setSettings({ ...settings, autoFinalizePoll: e.target.checked })}
+                                        />
+                                        <span className="label-text">נעילה אוטומטית של סקרים</span>
+                                    </label>
+                                    <p className="text-xs text-secondary mt-1">האם לנעול סקר ולקבוע חזרה אוטומטית כשיש רוב?</p>
                                 </div>
                             </div>
 
@@ -839,7 +838,7 @@ export function AdminPage() {
                                                 const success = await googleCalendarService.connect();
                                                 if (success) {
                                                     const updated = { ...settings, googleCalendarConnected: true };
-                                                    await localRepository.updateSystemSettings(updated);
+                                                    await repository.updateSystemSettings(updated);
                                                     setSettings(updated);
                                                     showToast('יומן חדר המוזיקה חובּר בהצלחה', 'success');
                                                 }
@@ -866,7 +865,7 @@ export function AdminPage() {
                                             onClick={async () => {
                                                 googleCalendarService.disconnect();
                                                 const updated = { ...settings, googleCalendarConnected: false };
-                                                await localRepository.updateSystemSettings(updated);
+                                                await repository.updateSystemSettings(updated);
                                                 setSettings(updated);
                                                 showToast('הסנכרון הופסק', 'info');
                                             }}
@@ -880,7 +879,7 @@ export function AdminPage() {
                             <div className="flex justify-end mt-6">
                                 <button
                                     className="btn btn-primary"
-                                    onClick={() => localRepository.updateSystemSettings(settings).then(() => showToast('הגדרות נשמרו בהצלחה', 'success'))}
+                                    onClick={handleSaveSettings}
                                 >
                                     שמור שינויים
                                 </button>
@@ -951,30 +950,6 @@ export function AdminPage() {
                     </div>
                 </Modal>
 
-                {/* Reject Request Modal */}
-                <Modal
-                    isOpen={showRejectModal}
-                    onClose={() => setShowRejectModal(false)}
-                    title="דחיית בקשת הופעה"
-                    size="sm"
-                >
-                    <div className="modal-form">
-                        <div className="form-group">
-                            <label className="form-label">סיבת הדחייה</label>
-                            <textarea
-                                className="form-textarea"
-                                value={rejectReason}
-                                onChange={(e) => setRejectReason(e.target.value)}
-                                placeholder="הסבר מדוע הבקשה נדחתה..."
-                                required
-                            />
-                        </div>
-                        <div className="form-actions">
-                            <button className="btn btn-ghost" onClick={() => setShowRejectModal(false)}>ביטול</button>
-                            <button className="btn btn-danger" onClick={handleRejectRequestConfirm}>דחה בקשה</button>
-                        </div>
-                    </div>
-                </Modal>
             </div>
             {/* Submission Reject Modal */}
             <Modal
@@ -1019,6 +994,6 @@ export function AdminPage() {
                     </div>
                 </div>
             </Modal>
-        </div>
+        </div >
     );
 }

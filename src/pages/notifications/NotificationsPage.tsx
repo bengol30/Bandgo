@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import { Notification } from '../../types';
 import { formatTimeAgo } from '../../utils';
 import './Notifications.css';
@@ -43,7 +43,7 @@ export function NotificationsPage() {
         if (!user) return;
         try {
             setLoading(true);
-            const data = await localRepository.getNotifications(user.id);
+            const data = await repository.getNotifications(user.id);
             setNotifications(data);
         } catch (error) {
             console.error('Failed to load notifications:', error);
@@ -56,7 +56,7 @@ export function NotificationsPage() {
     const handleMarkAsRead = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         try {
-            await localRepository.markNotificationRead(id);
+            await repository.markNotificationRead(id);
             setNotifications(notifications.map(n =>
                 n.id === id ? { ...n, read: true } : n
             ));
@@ -68,7 +68,7 @@ export function NotificationsPage() {
     const handleMarkAllAsRead = async () => {
         if (!user) return;
         try {
-            await localRepository.markAllNotificationsRead(user.id);
+            await repository.markAllNotificationsRead(user.id);
             setNotifications(notifications.map(n => ({ ...n, read: true })));
             showToast('כל ההתראות סומנו כנקראו', 'success');
         } catch (error) {
@@ -78,7 +78,7 @@ export function NotificationsPage() {
 
     const handleNotificationClick = async (notification: Notification) => {
         if (!notification.read) {
-            localRepository.markNotificationRead(notification.id); // Fire and forget
+            repository.markNotificationRead(notification.id); // Fire and forget
         }
 
         // Navigate based on type
@@ -121,11 +121,11 @@ export function NotificationsPage() {
                     // Fallback for older notifications or specific cases
                     try {
                         // We need to find where this application belongs
-                        const applications = await localRepository.getAllApplications(); // We might need a getApplicationById method
+                        const applications = await repository.getAllApplications(); // We might need a getApplicationById method
                         const app = applications.find(a => a.id === notification.relatedEntityId);
 
                         if (app) {
-                            const bands = await localRepository.getBands();
+                            const bands = await repository.getBands();
                             const band = bands.find(b => b.originalBandRequestId === app.bandRequestId);
                             if (band) {
                                 navigate(`/bands/${band.id}`);

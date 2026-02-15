@@ -8,7 +8,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowRight, MapPin, Music, Users, Calendar, Mic } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import { User, Band } from '../../types';
 import { INSTRUMENTS, GENRES } from '../../data/constants';
 import './Profile.css';
@@ -37,7 +37,7 @@ export function UserProfilePage() {
     const loadUser = async (id: string) => {
         try {
             setLoading(true);
-            const user = await localRepository.getUser(id);
+            const user = await repository.getUser(id);
             if (!user) {
                 showToast('המשתמש לא נמצא', 'error');
                 navigate(-1);
@@ -45,7 +45,7 @@ export function UserProfilePage() {
             }
             setProfileUser(user);
 
-            const bands = await localRepository.getMyBands(id);
+            const bands = await repository.getMyBands(id);
             setUserBands(bands);
         } catch (error) {
             console.error('Failed to load user:', error);

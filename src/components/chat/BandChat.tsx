@@ -8,7 +8,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, Image, Smile, Wifi, WifiOff } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import { useBandChat } from '../../hooks/useChat';
 import type { User, Band } from '../../types';
 import { formatDate } from '../../utils';
@@ -61,7 +61,7 @@ export function BandChat({ band }: BandChatProps) {
 
     const loadUsers = async () => {
         try {
-            const usersData = await localRepository.getAllUsers();
+            const usersData = await repository.getAllUsers();
             const usersMap: Record<string, User> = {};
             usersData.forEach(u => { usersMap[u.id] = u; });
             setUsers(usersMap);

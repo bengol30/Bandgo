@@ -8,7 +8,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Calendar, MapPin, Clock, Users, Ticket } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import { Event, EventType, EventRegistration, EventSubmission, EventSubmissionStatus } from '../../types';
 import { CreateEventSubmissionModal } from '../../components/events/CreateEventSubmissionModal';
 import './Events.css';
@@ -43,6 +43,7 @@ export function EventsPage() {
     const [loading, setLoading] = useState(true);
     const [selectedType, setSelectedType] = useState<EventType | 'all'>('all');
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [editingSubmission, setEditingSubmission] = useState<EventSubmission | null>(null);
     const [viewMode, setViewMode] = useState<'events' | 'submissions'>('events');
 
     useEffect(() => {
@@ -52,13 +53,13 @@ export function EventsPage() {
     const loadData = async () => {
         try {
             setLoading(true);
-            const eventsData = await localRepository.getEvents();
+            const eventsData = await repository.getEvents();
             setEvents(eventsData);
 
             // Load registration counts
             const counts: Record<string, number> = {};
             for (const event of eventsData) {
-                const regs = await localRepository.getEventRegistrations(event.id);
+                const regs = await repository.getEventRegistrations(event.id);
                 counts[event.id] = regs.filter(r => r.status !== 'cancelled').length;
             }
             setRegistrationCounts(counts);
@@ -67,10 +68,10 @@ export function EventsPage() {
 
             // Load my registrations & submissions
             if (user) {
-                const myRegs = await localRepository.getMyEventRegistrations(user.id);
+                const myRegs = await repository.getMyEventRegistrations(user.id);
                 setMyRegistrations(new Set(myRegs.map(r => r.eventId)));
 
-                const mySubs = await localRepository.getMyEventSubmissions(user.id);
+                const mySubs = await repository.getMyEventSubmissions(user.id);
                 setMySubmissions(mySubs);
             }
         } catch (error) {
@@ -90,7 +91,7 @@ export function EventsPage() {
 
         try {
             if (myRegistrations.has(eventId)) {
-                await localRepository.cancelRegistration(eventId, user.id);
+                await repository.cancelRegistration(eventId, user.id);
                 setMyRegistrations(prev => {
                     const next = new Set(prev);
                     next.delete(eventId);
@@ -102,7 +103,7 @@ export function EventsPage() {
                 }));
                 showToast('ההרשמה בוטלה', 'info');
             } else {
-                await localRepository.registerForEvent(eventId, user.id);
+                await repository.registerForEvent(eventId, user.id);
                 setMyRegistrations(prev => new Set(prev).add(eventId));
                 setRegistrationCounts(prev => ({
                     ...prev,
@@ -113,6 +114,22 @@ export function EventsPage() {
         } catch (error) {
             showToast('שגיאה בהרשמה לאירוע', 'error');
         }
+    };
+
+    const handleEditSubmission = (submission: EventSubmission) => {
+        setEditingSubmission(submission);
+        setShowCreateModal(true);
+    };
+
+    const handleCloseModal = () => {
+        setShowCreateModal(false);
+        setEditingSubmission(null);
+    };
+
+    const handleSubmissionSuccess = () => {
+        handleCloseModal();
+        loadData(); // Refresh list
+        showToast(editingSubmission ? 'הבקשה עודכנה בהצלחה' : 'הבקשה נשלחה בהצלחה', 'success');
     };
 
     const formatDate = (date: Date) => {
@@ -210,7 +227,7 @@ export function EventsPage() {
                                             )}
                                         </div>
                                     </div>
-                                    <div className="flex flex-col items-end">
+                                    <div className="flex flex-col items-end gap-2">
                                         <span className={`badge ${sub.status === 'approved' ? 'badge-success' :
                                             sub.status === 'rejected' ? 'badge-error' :
                                                 sub.status === 'needs_changes' ? 'badge-warning' : 'badge-secondary'
@@ -220,6 +237,14 @@ export function EventsPage() {
                                             {sub.status === 'needs_changes' && 'נדרש תיקון'}
                                             {sub.status === 'pending' && 'ממתין'}
                                         </span>
+                                        {sub.status === 'needs_changes' && (
+                                            <button
+                                                className="btn btn-sm btn-outline btn-warning"
+                                                onClick={() => handleEditSubmission(sub)}
+                                            >
+                                                ערוך בקשה
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -323,11 +348,14 @@ export function EventsPage() {
                 </>
             )}
 
-            <CreateEventSubmissionModal
-                isOpen={showCreateModal}
-                onClose={() => setShowCreateModal(false)}
-                onSubmitted={loadData}
-            />
+            {showCreateModal && (
+                <CreateEventSubmissionModal
+                    isOpen={showCreateModal}
+                    onClose={handleCloseModal}
+                    onSuccess={handleSubmissionSuccess}
+                    initialData={editingSubmission}
+                />
+            )}
         </div>
     );
 }

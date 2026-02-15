@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import { User } from '../../types';
 import './Login.css';
 
@@ -21,7 +21,7 @@ export function LoginPage() {
 
     useEffect(() => {
         // Load users for dev quick login hidden option
-        localRepository.getAllUsers().then(setDevUsers);
+        repository.getAllUsers().then(setDevUsers);
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {

@@ -7,14 +7,16 @@ import React, { useState, useEffect } from 'react';
 import { X, Send, Calendar, MapPin, Clock, Users, Ticket, Music, Image as ImageIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { localRepository } from '../../repositories/LocalRepository';
-import { EventType, Band } from '../../types';
+import { repository } from '../../repositories';
+import { EventType, Band, EventSubmission } from '../../types';
 import './EditEventModal.css'; // Reuse same styles
 
 interface CreateEventSubmissionModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmitted: () => void;
+    onSubmitted?: () => void;
+    onSuccess?: () => void;
+    initialData?: EventSubmission | null;
 }
 
 const eventTypeOptions: { value: EventType; label: string }[] = [
@@ -26,7 +28,7 @@ const eventTypeOptions: { value: EventType; label: string }[] = [
     { value: EventType.OTHER, label: 'אחר' },
 ];
 
-export function CreateEventSubmissionModal({ isOpen, onClose, onSubmitted }: CreateEventSubmissionModalProps) {
+export function CreateEventSubmissionModal({ isOpen, onClose, onSubmitted, onSuccess, initialData }: CreateEventSubmissionModalProps) {
     const { user } = useAuth();
     const { showToast } = useToast();
     const [loading, setLoading] = useState(false);
@@ -48,24 +50,40 @@ export function CreateEventSubmissionModal({ isOpen, onClose, onSubmitted }: Cre
     useEffect(() => {
         if (isOpen && user) {
             // Load user's bands
-            localRepository.getBands().then(bands => {
+            repository.getBands().then(bands => {
                 const mine = bands.filter(b => b.members.some(m => m.userId === user.id));
                 setMyBands(mine);
             });
-            // Reset form
-            setTitle('');
-            setType(EventType.JAM);
-            setDescription('');
-            setStartDate('');
-            setEndDate('');
-            setLocationText('');
-            setCoverUrl('');
-            setRegistrationEnabled(false);
-            setCapacity('');
-            setPrice(0);
-            setRelatedBandId('');
+
+            if (initialData) {
+                // Edit Mode
+                setTitle(initialData.title);
+                setType(initialData.type);
+                setDescription(initialData.description);
+                setStartDate(new Date(initialData.startAt).toISOString().slice(0, 16));
+                setEndDate(new Date(initialData.endAt).toISOString().slice(0, 16));
+                setLocationText(initialData.locationText);
+                setCoverUrl(initialData.coverUrl || '');
+                setRegistrationEnabled(initialData.registrationEnabled || false);
+                setCapacity(initialData.capacity || '');
+                setPrice(initialData.price || 0);
+                setRelatedBandId(initialData.relatedBandId || '');
+            } else {
+                // Create Mode
+                setTitle('');
+                setType(EventType.JAM);
+                setDescription('');
+                setStartDate('');
+                setEndDate('');
+                setLocationText('');
+                setCoverUrl('');
+                setRegistrationEnabled(false);
+                setCapacity('');
+                setPrice(0);
+                setRelatedBandId('');
+            }
         }
-    }, [isOpen, user]);
+    }, [isOpen, user, initialData]);
 
     if (!isOpen || !user) return null;
 
@@ -99,8 +117,8 @@ export function CreateEventSubmissionModal({ isOpen, onClose, onSubmitted }: Cre
 
         try {
             setLoading(true);
-            await localRepository.createEventSubmission({
-                submittedByUserId: user.id,
+
+            const submissionData = {
                 title: title.trim(),
                 type,
                 description: description.trim(),
@@ -112,11 +130,23 @@ export function CreateEventSubmissionModal({ isOpen, onClose, onSubmitted }: Cre
                 capacity: capacity ? Number(capacity) : undefined,
                 price,
                 relatedBandId: relatedBandId || undefined,
-                hostUserId: user.id,
-            });
+            };
 
-            showToast('הבקשה נשלחה לאישור! 🎉', 'success');
-            onSubmitted();
+            if (initialData) {
+                await repository.updateEventSubmission(initialData.id, submissionData);
+                showToast('הבקשה עודכנה בהצלחה', 'success');
+            } else {
+                await repository.createEventSubmission({
+                    ...submissionData,
+                    submittedByUserId: user.id,
+                    hostUserId: user.id,
+                    updatedAt: new Date(),
+                });
+                showToast('הבקשה נשלחה לאישור! 🎉', 'success');
+            }
+
+            if (onSuccess && typeof onSuccess === 'function') onSuccess();
+            if (onSubmitted && typeof onSubmitted === 'function') onSubmitted();
             onClose();
         } catch (error) {
             console.error('Failed to submit event:', error);

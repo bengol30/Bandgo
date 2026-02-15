@@ -279,81 +279,93 @@
     margin: 0;
 }
 
-/* Members List */
-.members-list {
+/* Members Section */
+.members-horizontal-list {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
+    overflow-x: auto;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm) 0 var(--spacing-md);
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-primary) transparent;
 }
 
-.member-item {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 14px;
+.members-horizontal-list::-webkit-scrollbar {
+    height: 4px;
+}
+
+.members-horizontal-list::-webkit-scrollbar-thumb {
+    background: var(--color-primary);
+    border-radius: 4px;
+}
+
+.member-profile-card {
+    min-width: 120px;
     background: var(--color-bg-tertiary);
-    border-radius: 14px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+    cursor: pointer;
     transition: all 0.2s;
 }
 
-.member-item:hover {
-    background: var(--color-bg-card-hover);
+.member-profile-card:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-4px);
+    background: var(--color-bg-card);
+    box-shadow: 0 4px 12px rgba(168, 85, 247, 0.1);
 }
 
-.member-avatar {
-    width: 50px;
-    height: 50px;
+.member-avatar-wrapper {
+    position: relative;
+    width: 60px;
+    height: 60px;
+}
+
+.member-avatar-wrapper img,
+.member-avatar-wrapper .avatar-placeholder {
+    width: 100%;
+    height: 100%;
     border-radius: 50%;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-
-.member-avatar img {
-    width: 100%;
-    height: 100%;
     object-fit: cover;
-}
-
-.member-avatar .avatar-placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-    color: white;
-    font-weight: 600;
-    font-size: 1.2rem;
-}
-
-.member-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.member-name {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 600;
-    color: var(--color-text-primary);
-    margin-bottom: 4px;
-    flex-wrap: wrap;
+    border: 2px solid var(--color-border);
 }
 
 .leader-badge {
-    padding: 3px 10px;
-    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-    color: white;
-    border-radius: 10px;
-    font-size: 0.7rem;
-    font-weight: 600;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background: var(--color-primary);
+    color: var(--color-bg-primary);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--color-bg-tertiary);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.member-instrument {
-    font-size: 0.85rem;
-    color: var(--color-text-secondary);
+.member-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
 }
+
+.member-role {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
 
 /* ============ REHEARSALS TAB ============ */
 .rehearsals-tab .empty-state,

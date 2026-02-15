@@ -66,6 +66,7 @@
     margin-bottom: var(--spacing-xs);
     background: var(--color-accent-gradient);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -416,10 +417,15 @@
     color: var(--color-success);
 }
 
-/* Members avatars */
+/* Members Section */
+.card-members-section {
+    margin-bottom: var(--spacing-sm);
+}
+
 .card-members {
     display: flex;
     align-items: center;
+    gap: 8px;
     margin-top: auto;
     padding-top: var(--spacing-md);
     border-top: 1px solid var(--color-border);
@@ -427,21 +433,49 @@
 
 .member-stack {
     display: flex;
-    margin-right: 8px;
+    align-items: center;
 }
 
-.member-stack img {
+.stack-avatar {
     width: 24px;
     height: 24px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     border: 2px solid var(--color-bg-card);
     margin-right: -8px;
+    object-fit: cover;
+    background: var(--color-bg-tertiary);
+    transition: all var(--transition-fast);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-weight: 700;
+    color: var(--color-text-secondary);
+}
+
+.stack-avatar:hover {
+    transform: translateY(-2px) scale(1.1);
+    z-index: 10;
+    margin-right: -4px;
+    margin-left: 4px;
+}
+
+.stack-avatar.placeholder {
+    background: var(--color-bg-tertiary);
+}
+
+.stack-avatar.more {
+    background: var(--color-bg-secondary);
+    border-color: var(--color-border);
+    z-index: 1;
+    margin-right: -4px;
+    margin-left: 4px;
 }
 
 .members-count-label {
-    font-size: 0.8rem;
-    color: var(--color-text-secondary);
-    margin-right: auto;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
 }
 
 /* ============ FAB ============ */
@@ -524,6 +558,7 @@
     color: var(--color-text-muted);
     pointer-events: none;
 }
+
 /* ============ MY BANDS SECTION ============ */
 .my-bands-section {
     padding: 0 var(--spacing-md) var(--spacing-lg);
@@ -567,11 +602,13 @@
     gap: var(--spacing-md);
     overflow-x: auto;
     padding-bottom: 8px;
-    scrollbar-width: none; /* Firefox */
+    scrollbar-width: none;
+    /* Firefox */
 }
 
 .my-bands-scroll::-webkit-scrollbar {
-    display: none; /* Chrome/Safari */
+    display: none;
+    /* Chrome/Safari */
 }
 
 .my-band-card-mini {
@@ -581,18 +618,39 @@
     background: var(--color-bg-card);
     border: 1px solid var(--color-border);
     padding: 12px;
-    border-radius: 16px; /* Slightly more rounded */
+    border-radius: 16px;
     min-width: 240px;
     flex-shrink: 0;
     text-decoration: none;
     color: inherit;
     transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Elegant Differentiation */
+.my-band-card-mini.type-band {
+    background: linear-gradient(to right, rgba(168, 85, 247, 0.05), var(--color-bg-card));
+    border-left: 3px solid var(--color-primary);
+}
+
+.my-band-card-mini.type-request {
+    background: linear-gradient(to right, rgba(245, 158, 11, 0.05), var(--color-bg-card));
+    border-left: 3px solid var(--color-accent);
 }
 
 .my-band-card-mini:hover {
-    border-color: var(--color-accent);
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
+}
+
+/* Hover effects based on type */
+.my-band-card-mini.type-band:hover {
+    border-color: var(--color-primary);
+}
+
+.my-band-card-mini.type-request:hover {
+    border-color: var(--color-accent);
 }
 
 .mini-cover {
@@ -605,6 +663,21 @@
     justify-content: center;
     overflow: hidden;
     color: var(--color-text-tertiary);
+    flex-shrink: 0;
+    position: relative;
+}
+
+.mini-badge {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    font-size: 8px;
+    text-align: center;
+    padding: 2px 0;
+    backdrop-filter: blur(2px);
 }
 
 .mini-cover img {
@@ -617,18 +690,62 @@
     flex: 1;
     display: flex;
     flex-direction: column;
+    justify-content: center;
+    gap: 2px;
 }
 
 .mini-info h3 {
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 600;
     margin: 0;
     line-height: 1.2;
+    color: var(--color-text-primary);
 }
 
-.mini-info span {
-    font-size: 0.8rem;
+.status-text {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.status-text.band {
     color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.status-text.band::before {
+    content: '●';
+    color: var(--color-success);
+    font-size: 6px;
+}
+
+.status-text.request {
+    color: var(--color-accent);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.status-text.request::before {
+    content: '●';
+    color: var(--color-accent);
+    font-size: 6px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        opacity: 1;
+    }
 }
 
 /* Header Actions for multiple buttons */

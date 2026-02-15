@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { localRepository } from '../../repositories/LocalRepository';
+import { repository } from '../../repositories';
 import type { Band, User, AvailabilitySlot, SchedulingSuggestion } from '../../types';
 import { RehearsalPoll } from '../../types';
 import { AvailabilityStatus, RehearsalStatus } from '../../types';
@@ -82,12 +82,12 @@ export function RehearsalSchedulerPage() {
             weekEnd.setDate(weekEnd.getDate() + 7);
 
             const [bandData, usersData, availData, suggestionsData, systemSettings, pollsData] = await Promise.all([
-                localRepository.getBand(bandId),
-                localRepository.getAllUsers(),
-                localRepository.getAvailability(bandId, currentWeekStart, weekEnd),
-                localRepository.getSchedulingSuggestions(bandId),
-                localRepository.getSettings(),
-                localRepository.getActivePolls(bandId),
+                repository.getBand(bandId),
+                repository.getAllUsers(),
+                repository.getAvailability(bandId, currentWeekStart, weekEnd),
+                repository.getSchedulingSuggestions(bandId),
+                repository.getSettings(),
+                repository.getActivePolls(bandId),
             ]);
 
             if (!bandData) {
@@ -233,13 +233,13 @@ export function RehearsalSchedulerPage() {
 
             // Save each date's availability
             for (const [dateStr, slots] of dateMap.entries()) {
-                await localRepository.updateAvailability(bandId, new Date(dateStr), slots);
+                await repository.updateAvailability(bandId, new Date(dateStr), slots);
             }
 
             showToast('הזמינות נשמרה בהצלחה', 'success');
 
             // Refresh suggestions
-            const newSuggestions = await localRepository.getSchedulingSuggestions(bandId);
+            const newSuggestions = await repository.getSchedulingSuggestions(bandId);
             setSuggestions(newSuggestions);
         } catch (error) {
             console.error('Failed to save availability:', error);
@@ -254,7 +254,7 @@ export function RehearsalSchedulerPage() {
 
         try {
             setSaving(true);
-            await localRepository.createRehearsal({
+            await repository.createRehearsal({
                 bandId,
                 dateTime: new Date(suggestion.dateTime),
                 durationMinutes: suggestion.durationMinutes,
@@ -295,7 +295,7 @@ export function RehearsalSchedulerPage() {
         if (!bandId || !user) return;
         try {
             setSaving(true);
-            const newPoll = await localRepository.createRehearsalPoll({
+            const newPoll = await repository.createRehearsalPoll({
                 bandId,
                 creatorId: user.id,
                 deadline: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
