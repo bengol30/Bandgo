@@ -1,34 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ChatService } from '../ChatService';
+import { chatService } from '../ChatService';
 import type { ChatMessageEvent, DirectMessageEvent } from '../ChatService';
 
-// We need to test the class directly, not the singleton
-// Re-create instances for isolation
-function createChatService() {
-  // @ts-expect-error - accessing constructor of the class for testing
-  return new (Object.getPrototypeOf(
-    // Import the module to get the class
-    (() => {
-      // We'll use a workaround: create a minimal ChatService-like object
-      return {};
-    })()
-  ).constructor)();
-}
-
-// Since ChatService is exported as a singleton, we test via importing the module
-// Let's re-implement the test by directly testing the exported chatService behavior
-// Actually, let's import the class properly
-
 describe('ChatService', () => {
-  let service: InstanceType<typeof ChatServiceClass>;
-  let ChatServiceClass: typeof import('../ChatService') extends { chatService: infer T } ? new () => T : never;
+  let service: typeof chatService;
 
   beforeEach(async () => {
-    // Dynamically import to get a fresh module
     vi.resetModules();
     const mod = await import('../ChatService');
-    // chatService is a singleton, but we can test its behavior
-    // For isolation, we'll use the exported singleton and clean up
     service = mod.chatService;
   });
 
@@ -134,7 +113,6 @@ describe('ChatService', () => {
       const unsubscribe = service.subscribeToDirectChat('conv-1', listener);
       unsubscribe();
 
-      // Notifying should not throw, just no listeners
       service.notifyDirectChatListeners('conv-1', {
         type: 'new_message',
         conversationId: 'conv-1',
