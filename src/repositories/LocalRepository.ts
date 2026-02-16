@@ -162,27 +162,39 @@ export class LocalRepository implements IRepository {
     }
 
     private resetToDefaults() {
-        this.users = [...mockUsers];
-        this.bandRequests = [...mockBandRequests];
-        this.applications = [...mockApplications];
-        this.bands = [...mockBands];
-        this.rehearsals = [...mockRehearsals];
-        this.polls = [...mockPolls];
-        this.songs = [...mockSongs];
+        this.users = mockUsers.map(u => ({ ...u, instruments: [...u.instruments], genres: [...u.genres], samples: [...u.samples] }));
+        this.bandRequests = mockBandRequests.map(br => ({
+            ...br,
+            genres: [...br.genres],
+            currentMembers: [...br.currentMembers],
+            sketches: [...br.sketches],
+            instrumentSlots: br.instrumentSlots?.map(s => ({ ...s, filledBy: [...s.filledBy] })),
+            influences: br.influences ? [...br.influences] : undefined,
+        }));
+        this.applications = mockApplications.map(a => ({ ...a }));
+        this.bands = mockBands.map(b => ({
+            ...b,
+            members: b.members.map(m => ({ ...m })),
+            genres: [...b.genres],
+            influences: b.influences ? [...b.influences] : undefined,
+        }));
+        this.rehearsals = mockRehearsals.map(r => ({ ...r }));
+        this.polls = mockPolls.map(p => ({ ...p }));
+        this.songs = mockSongs.map(s => ({ ...s, audioFiles: s.audioFiles ? [...s.audioFiles] : [] }));
         this.performanceRequests = [];
         this.liveSessionRequests = [];
-        this.posts = [...mockPosts];
+        this.posts = mockPosts.map(p => ({ ...p, likesCount: 0, commentsCount: 0 }));
         this.comments = [];
         this.likes = [];
-        this.events = [...mockEvents];
-        this.eventRegistrations = [...mockEventRegistrations];
+        this.events = mockEvents.map(e => ({ ...e }));
+        this.eventRegistrations = mockEventRegistrations.map(er => ({ ...er }));
         this.availabilitySlots = [];
-        this.notifications = [...mockNotifications];
+        this.notifications = mockNotifications.map(n => ({ ...n }));
         this.settings = { ...mockSettings };
-        this.reports = [...(mockReports as unknown as AppReport[])];
+        this.reports = [...(mockReports as unknown as AppReport[])].map(r => ({ ...r }));
         this.chatMessages = [];
-        this.conversations = [...mockConversations];
-        this.directMessages = [...mockDirectMessages];
+        this.conversations = mockConversations.map(c => ({ ...c, participantIds: [...c.participantIds] as [string, string] }));
+        this.directMessages = mockDirectMessages.map(dm => ({ ...dm }));
         this.eventSubmissions = [];
         this.saveToStorage();
     }

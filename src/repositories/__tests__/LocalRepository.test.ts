@@ -427,33 +427,39 @@ describe('LocalRepository', () => {
     });
 
     it('likePost increments like count', async () => {
+      const postBefore = await repo.getPost('post-2');
+      expect(postBefore!.likesCount).toBe(0); // starts at 0, synced with empty likes array
+
       await repo.likePost('post-2', 'user-3');
       const post = await repo.getPost('post-2');
-      expect(post!.likesCount).toBe(9); // was 8
+      expect(post!.likesCount).toBe(1);
     });
 
     it('likePost does not double-like', async () => {
-      const postBefore = await repo.getPost('post-2');
-      const countBefore = postBefore!.likesCount;
       await repo.likePost('post-2', 'user-3');
-      await repo.likePost('post-2', 'user-3');
+      await repo.likePost('post-2', 'user-3'); // same user again
       const post = await repo.getPost('post-2');
-      // The first likePost from previous test may have already incremented
-      // so we check relative to countBefore+1 (one like from user-3)
-      expect(post!.likesCount).toBe(countBefore + 1);
+      // Should still be 1 - duplicate like blocked
+      const likes = await repo.getPostLikes('post-2');
+      expect(likes.length).toBe(1);
+      expect(post!.likesCount).toBe(1);
     });
 
     it('unlikePost decrements like count', async () => {
-      // Make sure user-3 has liked the post first
       await repo.likePost('post-2', 'user-3');
-      const postBefore = await repo.getPost('post-2');
-      const countBefore = postBefore!.likesCount;
+      expect((await repo.getPost('post-2'))!.likesCount).toBe(1);
+
       await repo.unlikePost('post-2', 'user-3');
       const post = await repo.getPost('post-2');
-      expect(post!.likesCount).toBe(countBefore - 1);
+      expect(post!.likesCount).toBe(0);
+      const likes = await repo.getPostLikes('post-2');
+      expect(likes.length).toBe(0);
     });
 
     it('createComment increments comment count', async () => {
+      const postBefore = await repo.getPost('post-2');
+      const countBefore = postBefore!.commentsCount;
+
       const comment = await repo.createComment({
         postId: 'post-2',
         authorId: 'user-3',
@@ -464,7 +470,7 @@ describe('LocalRepository', () => {
       expect(comment.content).toBe('Nice post!');
 
       const post = await repo.getPost('post-2');
-      expect(post!.commentsCount).toBe(3); // was 2
+      expect(post!.commentsCount).toBe(countBefore + 1);
     });
 
     it('deleteComment decrements comment count', async () => {
@@ -816,6 +822,35 @@ describe('LocalRepository', () => {
       const updated = submissions.find(s => s.id === sub.id);
       expect(updated!.status).toBe('rejected');
       expect(updated!.rejectionReason).toBe('Not appropriate');
+    });
+  });
+
+  // ============ DATA INTEGRITY ============
+  describe('Data Integrity (regression)', () => {
+    it('deep copies mock data so mutations do not leak between instances', async () => {
+      // Mutate band members in repo1
+      const repo1 = new LocalRepository();
+      await repo1.leaveBand('band-1', 'user-4');
+      const band1 = await repo1.getBand('band-1');
+      expect(band1!.members.some(m => m.userId === 'user-4')).toBe(false);
+
+      // A fresh repo should have the original data intact
+      localStorage.clear();
+      const repo2 = new LocalRepository();
+      const band2 = await repo2.getBand('band-1');
+      expect(band2!.members.some(m => m.userId === 'user-4')).toBe(true);
+    });
+
+    it('likesCount is consistent with actual likes array', async () => {
+      const post = await repo.getPost('post-1');
+      const likes = await repo.getPostLikes('post-1');
+      expect(post!.likesCount).toBe(likes.length);
+    });
+
+    it('commentsCount is consistent with actual comments array', async () => {
+      const post = await repo.getPost('post-1');
+      const comments = await repo.getComments('post-1');
+      expect(post!.commentsCount).toBe(comments.length);
     });
   });
 });
