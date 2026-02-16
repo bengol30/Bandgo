@@ -192,12 +192,15 @@ export function BandWorkspacePage() {
 
     const handleDeleteSong = async (songId: string) => {
         try {
+            setIsSaving(true);
             await repository.deleteSong(songId);
             setSongs(prev => prev.filter(s => s.id !== songId));
             showToast('השיר נמחק בהצלחה', 'success');
         } catch (error) {
             console.error('Failed to delete song:', error);
             showToast('שגיאה במחיקת השיר', 'error');
+        } finally {
+            setIsSaving(false);
         }
     };
 

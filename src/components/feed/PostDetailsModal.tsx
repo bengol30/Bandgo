@@ -133,7 +133,10 @@ export function PostDetailsModal({ postId, isOpen, onClose }: PostDetailsModalPr
                                         <span className="font-bold mr-2 text-primary">{getUserDisplayName(post.authorId || '')}</span>
                                         <span className="text-secondary">• {new Date(post.createdAt).toLocaleDateString()}</span>
                                     </div>
-                                    <p className="whitespace-pre-wrap">{post.content}</p>
+                                    {post.content && <p className="whitespace-pre-wrap">{post.content}</p>}
+                                    {post.media && post.media.length > 0 && post.media[0].type === 'image' && (
+                                        <img src={post.media[0].url} alt="" className="post-modal-image" />
+                                    )}
                                 </div>
                             )}
 

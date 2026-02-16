@@ -4,8 +4,9 @@
 // ============================================
 
 import React, { useState, useEffect, useRef } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { useSearchParams } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Image, Send, Pin, X } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Image, Send, Pin, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { repository } from '../../repositories';
@@ -85,9 +86,15 @@ export function FeedPage() {
                 type: PostType.USER_POST,
                 authorId: user.id,
                 content: newPostContent.trim(),
-                imageUrl: selectedImage || undefined,
                 isPinned: false,
-            } as any); // Cast to any because Post creation omits might conflict with strict types sometimes
+                media: selectedImage ? [{
+                    id: uuidv4(),
+                    url: selectedImage,
+                    type: 'image' as const,
+                    name: 'post-image',
+                    createdAt: new Date()
+                }] : undefined,
+            });
             setPosts([newPost, ...posts]);
             setNewPostContent('');
             setSelectedImage(null);
@@ -207,6 +214,18 @@ export function FeedPage() {
                                 מה חדש, {user.displayName.split(' ')[0]}?
                             </button>
                         </div>
+                        <div className="create-post-quick-actions">
+                            <button
+                                className="create-post-quick-btn"
+                                onClick={() => {
+                                    setShowCreateModal(true);
+                                    setTimeout(() => fileInputRef.current?.click(), 150);
+                                }}
+                            >
+                                <Image size={18} />
+                                <span>תמונה / וידאו</span>
+                            </button>
+                        </div>
                     </div>
                 )}
 
@@ -277,63 +296,74 @@ export function FeedPage() {
                 )}
             </div>
 
-            {/* Create Post Modal */}
+            {/* Create Post Modal — bottom sheet */}
             {showCreateModal && (
-                <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-                    <div className="modal create-post-modal" onClick={e => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3 className="modal-title">פוסט חדש</h3>
-                            <button
-                                className="btn btn-icon btn-ghost"
-                                onClick={() => setShowCreateModal(false)}
-                            >
-                                ✕
+                <div className="create-post-sheet-overlay" onClick={() => setShowCreateModal(false)}>
+                    <div className="create-post-sheet" onClick={e => e.stopPropagation()}>
+                        {/* Drag handle */}
+                        <div className="sheet-drag-handle" />
+
+                        {/* Header row */}
+                        <div className="sheet-header">
+                            <div className="sheet-header-user">
+                                {user?.avatarUrl ? (
+                                    <img src={user.avatarUrl} alt={user?.displayName} className="sheet-avatar" />
+                                ) : (
+                                    <div className="sheet-avatar sheet-avatar-placeholder">{user?.displayName?.charAt(0)}</div>
+                                )}
+                                <div className="sheet-user-info">
+                                    <span className="sheet-user-name">{user?.displayName}</span>
+                                    <span className="sheet-audience">כולם</span>
+                                </div>
+                            </div>
+                            <button className="sheet-close-btn" onClick={() => setShowCreateModal(false)}>
+                                <X size={20} />
                             </button>
                         </div>
-                        <div className="modal-body">
-                            <textarea
-                                className="create-post-textarea"
-                                placeholder="מה חדש אצלך?"
-                                value={newPostContent}
-                                onChange={e => setNewPostContent(e.target.value)}
-                                autoFocus
-                            />
-                            <div className="create-post-actions">
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    onChange={handleImageSelect}
-                                    style={{ display: 'none' }}
-                                    accept="image/*"
-                                />
-                                {selectedImage && (
-                                    <div className="post-image-preview" style={{ position: 'relative', width: '100%', marginBottom: '1rem' }}>
-                                        <img src={selectedImage} alt="Preview" style={{ width: '100%', maxHeight: '200px', borderRadius: '8px', objectFit: 'cover' }} />
-                                        <button
-                                            onClick={handleRemoveImage}
-                                            style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}
-                                        >
-                                            <X size={14} />
-                                        </button>
-                                    </div>
-                                )}
 
-                                <button
-                                    className="create-post-media-btn"
-                                    onClick={() => fileInputRef.current?.click()}
-                                >
-                                    <Image size={18} />
-                                    <span>הוסף תמונה</span>
-                                </button>
-                                <button
-                                    className="btn btn-primary"
-                                    onClick={handleCreatePost}
-                                    disabled={!newPostContent.trim() && !selectedImage}
-                                >
-                                    <Send size={18} />
-                                    פרסם
+                        {/* Textarea */}
+                        <textarea
+                            className="sheet-textarea"
+                            placeholder={`מה חדש, ${user?.displayName?.split(' ')[0]}?`}
+                            value={newPostContent}
+                            onChange={e => setNewPostContent(e.target.value)}
+                            autoFocus
+                        />
+
+                        {/* Image preview */}
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleImageSelect}
+                            style={{ display: 'none' }}
+                            accept="image/*"
+                        />
+                        {selectedImage && (
+                            <div className="sheet-image-preview">
+                                <img src={selectedImage} alt="Preview" />
+                                <button className="post-image-remove-btn" onClick={handleRemoveImage}>
+                                    <X size={14} />
                                 </button>
                             </div>
+                        )}
+
+                        {/* Action bar */}
+                        <div className="sheet-action-bar">
+                            <button
+                                className="sheet-media-btn"
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                <Image size={20} />
+                                <span>תמונה</span>
+                            </button>
+                            <button
+                                className="sheet-publish-btn"
+                                onClick={handleCreatePost}
+                                disabled={!newPostContent.trim() && !selectedImage}
+                            >
+                                <Send size={16} />
+                                פרסם
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -53,7 +53,7 @@ export function CreateEventSubmissionModal({ isOpen, onClose, onSubmitted, onSuc
             repository.getBands().then(bands => {
                 const mine = bands.filter(b => b.members.some(m => m.userId === user.id));
                 setMyBands(mine);
-            });
+            }).catch(err => console.error('Failed to load bands:', err));
 
             if (initialData) {
                 // Edit Mode
@@ -104,6 +104,10 @@ export function CreateEventSubmissionModal({ isOpen, onClose, onSubmitted, onSuc
         }
         if (new Date(endDate) <= new Date(startDate)) {
             showToast('שעת הסיום חייבת להיות אחרי שעת ההתחלה', 'error');
+            return;
+        }
+        if (new Date(startDate) < new Date()) {
+            showToast('לא ניתן לשלוח אירוע בתאריך שעבר', 'error');
             return;
         }
         if (!locationText.trim()) {

@@ -86,13 +86,14 @@
 .empty-icon {
     width: 80px;
     height: 80px;
-    border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-2xl);
+    background-color: var(--color-accent-glow);
+    border: 1px solid var(--color-border-accent);
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: var(--spacing-md);
-    color: var(--color-text-tertiary);
+    color: var(--color-accent-primary);
 }
 
 /* List */
@@ -107,25 +108,23 @@
     align-items: flex-start;
     gap: var(--spacing-md);
     padding: var(--spacing-md);
-    background-color: var(--color-surface);
+    background-color: var(--color-bg-card);
     border-radius: var(--radius-lg);
     border: 1px solid var(--color-border);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
     position: relative;
     overflow: hidden;
 }
 
 .notification-item:hover {
-    border-color: var(--color-accent);
-    background-color: rgba(255, 255, 255, 0.07);
+    border-color: var(--color-border-accent);
+    background-color: var(--color-bg-card-hover);
 }
 
 .notification-item.unread {
-    background-color: rgba(var(--color-accent-rgb), 0.08);
-    /* Assuming accent-rgb exists, otherwise fallback */
-    background-color: rgba(224, 255, 102, 0.05);
-    border-color: rgba(224, 255, 102, 0.2);
+    background-color: var(--color-accent-glow);
+    border-color: var(--color-border-accent);
 }
 
 .notification-icon {

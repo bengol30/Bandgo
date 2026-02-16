@@ -10,14 +10,14 @@
     padding: var(--spacing-lg);
     margin-bottom: var(--spacing-md);
     cursor: pointer;
-    transition: all var(--transition-normal);
+    transition: border-color var(--transition-normal), box-shadow var(--transition-normal), transform var(--transition-normal);
     animation: slide-up 0.3s ease;
 }
 
 .request-card:hover {
     border-color: var(--color-border-accent);
     transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-lg), 0 0 0 1px var(--color-border-accent);
 }
 
 .request-card-header {

@@ -117,7 +117,6 @@ export function AdminPage() {
             switch (tabToLoad) {
                 case 'submissions':
                     const allSubmissions = await repository.getAllEventSubmissions();
-                    console.log('AdminPage loaded submissions:', allSubmissions);
                     setSubmissions(allSubmissions);
                     break;
                 case 'bands': // Added bands case

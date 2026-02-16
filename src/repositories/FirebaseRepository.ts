@@ -347,12 +347,19 @@ export class FirebaseRepository implements IRepository {
 
     async reviewApplication(id: string, status: 'approved' | 'rejected', note?: string): Promise<BandApplication> {
         const ref = doc(db, 'applications', id);
-        await updateDoc(ref, { status, reviewedAt: serverTimestamp(), ...(note ? { reviewNote: note } : {}) });
+
+        // First read the application to get its data
         const snap = await getDoc(ref);
+        if (!snap.exists()) throw new Error('Application not found');
         const app = convertDates(snap.data()) as BandApplication;
 
+        const batch = writeBatch(db);
+
+        // Update application status atomically
+        batch.update(ref, { status, reviewedAt: serverTimestamp(), ...(note ? { reviewNote: note } : {}) });
+
         if (status === 'approved') {
-            // Update BandRequest members and slots
+            // Update BandRequest members and slots in the same batch
             const reqRef = doc(db, 'bandRequests', app.bandRequestId);
             const reqSnap = await getDoc(reqRef);
             if (reqSnap.exists()) {
@@ -371,14 +378,18 @@ export class FirebaseRepository implements IRepository {
                     }
                 }
 
-                await updateDoc(reqRef, {
+                batch.update(reqRef, {
                     currentMembers: members,
                     instrumentSlots: slots
                 });
             }
         }
 
-        return app;
+        await batch.commit();
+
+        // Return updated application
+        const updatedSnap = await getDoc(ref);
+        return convertDates(updatedSnap.data()) as BandApplication;
     }
 
     // ============ BANDS ============
@@ -495,6 +506,17 @@ export class FirebaseRepository implements IRepository {
                 members: updatedMembers,
                 updatedAt: serverTimestamp()
             });
+
+            // Sync BandRequest.currentMembers to remove the leaving user
+            if (band.originalBandRequestId) {
+                const reqRef = doc(db, 'bandRequests', band.originalBandRequestId);
+                const reqSnap = await getDoc(reqRef);
+                if (reqSnap.exists()) {
+                    const req = reqSnap.data();
+                    const updatedReqMembers = (req.currentMembers || []).filter((id: string) => id !== userId);
+                    await updateDoc(reqRef, { currentMembers: updatedReqMembers });
+                }
+            }
 
             // Create system message
             const user = await this.getUser(userId);
@@ -681,10 +703,6 @@ export class FirebaseRepository implements IRepository {
             id,
             createdAt: new Date()
         };
-        await setDoc(doc(db, 'rehearsals', id), poll); // Storing polls in 'rehearsals' collection with type differentiation or separate? 
-        // Wait, polls are usually separate. Let's check mockData.
-        // Mock data has 'rehearsalPolls' ? No, 'rehearsalPolls' is not in mockData export I saw earlier.
-        // Let's assume a separate collection 'rehearsalPolls'
         await setDoc(doc(db, 'rehearsalPolls', id), poll);
         return poll;
     }
@@ -1032,7 +1050,20 @@ export class FirebaseRepository implements IRepository {
     }
 
     async forceDeleteBand(bandId: string): Promise<void> {
-        await deleteDoc(doc(db, 'bands', bandId));
+        const batch = writeBatch(db);
+
+        // Delete all related sub-documents first
+        const relatedCollections = ['songs', 'tasks', 'rehearsals', 'rehearsalPolls', 'chatMessages'];
+        for (const collName of relatedCollections) {
+            const q = query(collection(db, collName), where('bandId', '==', bandId));
+            const sn = await getDocs(q);
+            sn.docs.forEach(d => batch.delete(d.ref));
+        }
+
+        // Delete the band itself
+        batch.delete(doc(db, 'bands', bandId));
+
+        await batch.commit();
     }
 
 

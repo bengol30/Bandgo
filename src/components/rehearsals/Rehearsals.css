@@ -16,7 +16,7 @@
 .poll-card {
     background: var(--color-bg-card);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-xl);
     padding: var(--spacing-lg);
     margin-bottom: var(--spacing-lg);
 }
@@ -74,12 +74,18 @@
     border: 1px solid var(--color-border);
     background: var(--color-bg-card);
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
     color: var(--color-text-secondary);
 }
 
 .vote-btn:hover {
     background: var(--color-bg-card-hover);
+    border-color: var(--color-border-hover);
+    transform: scale(1.1);
+}
+
+.vote-btn:active {
+    transform: scale(0.93);
 }
 
 .vote-btn.voted-yes {

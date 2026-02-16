@@ -9,14 +9,14 @@
     border-radius: var(--radius-xl);
     overflow: hidden;
     cursor: pointer;
-    transition: all var(--transition-normal);
+    transition: border-color var(--transition-normal), box-shadow var(--transition-normal), transform var(--transition-normal);
     animation: slide-up 0.3s ease;
 }
 
 .event-card:hover {
     border-color: var(--color-border-accent);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg), 0 0 0 1px var(--color-border-accent);
 }
 
 .event-card-cover {
@@ -39,14 +39,17 @@
     align-items: center;
     justify-content: center;
     font-size: 3rem;
-    opacity: 0.3;
+    opacity: 0.4;
+    background: linear-gradient(135deg, var(--color-bg-secondary) 0%, var(--color-bg-tertiary) 100%);
 }
 
 .event-card-date {
     position: absolute;
     top: var(--spacing-md);
     right: var(--spacing-md);
-    background: var(--color-bg-primary);
+    background: rgba(10, 10, 11, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
     padding: var(--spacing-sm) var(--spacing-md);

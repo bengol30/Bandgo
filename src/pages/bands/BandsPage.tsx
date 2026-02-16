@@ -8,7 +8,7 @@ import {
     X,
     Guitar,
     Percent,
-    Users,
+    SlidersHorizontal,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -43,9 +43,7 @@ export function BandsPage() {
 
     // UI States
     const [matchMyInstruments, setMatchMyInstruments] = useState(false);
-    const [isGenreOpen, setIsGenreOpen] = useState(false);
-    const [isInstrumentOpen, setIsInstrumentOpen] = useState(false);
-    const [isMaterialOpen, setIsMaterialOpen] = useState(false);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -98,12 +96,12 @@ export function BandsPage() {
         navigate('/requests/new');
     };
 
-    const scrollToMyBands = () => {
-        const element = document.getElementById('my-bands-section');
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth' });
-        }
-    };
+    const activeFiltersCount = [
+        selectedGenre,
+        selectedInstrument,
+        materialFilter !== 'all' ? materialFilter : null,
+        matchMyInstruments ? 'match' : null,
+    ].filter(Boolean).length;
 
     const getFilteredContent = () => {
         let content: (Band | BandRequest)[] = [];
@@ -183,25 +181,16 @@ export function BandsPage() {
                         <h1 className="page-title">להקות והרכבים</h1>
                         <p className="page-subtitle">מצא את השותפים המוזיקליים הבאים שלך</p>
                     </div>
-                    {myItems.length > 0 ? (
-                        <div className="header-actions">
-                            <button className="new-band-btn" onClick={scrollToMyBands}>
-                                <Users size={20} />
-                                <span>הפרויקטים שלי ({myItems.length})</span>
-                            </button>
-                        </div>
-                    ) : (
-                        <button className="new-band-btn" onClick={handleCreate}>
-                            <Plus size={20} />
-                            <span>צור הרכב חדש</span>
-                        </button>
-                    )}
+                    <button className="new-band-btn" onClick={handleCreate}>
+                        <Plus size={20} />
+                        <span>צור הרכב חדש</span>
+                    </button>
                 </div>
             </header>
 
             {/* My Bands & Requests Section */}
             {myItems.length > 0 && (
-                <div id="my-bands-section" className="my-bands-section">
+                <div id="my-bands-section" className="my-bands-section my-bands-featured">
                     <div className="section-header">
                         <h2 className="section-title-small">הפרויקטים שלי</h2>
                         <button className="btn-text" onClick={handleCreate}>
@@ -251,138 +240,137 @@ export function BandsPage() {
                 </div>
             )}
 
-            {/* Controls Bar (Sticky) */}
+            {/* Controls Bar */}
             <div className="bands-controls">
                 <div className="controls-container">
-                    {/* View Tabs */}
-                    <div className="view-tabs">
+                    {/* View Cards */}
+                    <div className="view-cards">
                         <button
-                            className={`view-tab ${currentView === 'hiring' ? 'active' : ''}`}
+                            className={`view-card ${currentView === 'hiring' ? 'active' : ''}`}
                             onClick={() => handleViewChange('hiring')}
                         >
-                            <span className="view-tab-icon">📢</span>
-                            לוח דרושים
+                            <span className="view-card-icon">📢</span>
+                            <div className="view-card-text">
+                                <span className="view-card-title">לוח דרושים</span>
+                                <span className="view-card-subtitle">הרכבים שמחפשים נגנים</span>
+                            </div>
                         </button>
                         <button
-                            className={`view-tab ${currentView === 'active' ? 'active' : ''}`}
+                            className={`view-card ${currentView === 'active' ? 'active' : ''}`}
                             onClick={() => handleViewChange('active')}
                         >
-                            <span className="view-tab-icon">🎸</span>
-                            אינדקס להקות
+                            <span className="view-card-icon">🎸</span>
+                            <div className="view-card-text">
+                                <span className="view-card-title">אינדקס להקות</span>
+                                <span className="view-card-subtitle">הרכבים פעילים</span>
+                            </div>
                         </button>
                     </div>
 
-                    {/* Search Bar */}
-                    <div className="search-container">
-                        <Search className="search-icon-absolute" size={18} />
-                        <input
-                            type="text"
-                            className="search-input"
-                            placeholder="חפש לפי שם, סגנון או תיאור..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-
-                    {/* Filters */}
-                    <div className="filters-bar compact-filters">
-                        {/* Match My Instruments */}
-                        {currentView === 'hiring' && user?.instruments && user.instruments.length > 0 && (
+                    {/* Search + Filter Row */}
+                    <div className="search-filter-row">
+                        <div className="search-container">
+                            <Search className="search-icon-absolute" size={18} />
+                            <input
+                                type="text"
+                                className="search-input"
+                                placeholder="חפש לפי שם, סגנון או תיאור..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                        <div className="filter-btn-wrapper">
                             <button
-                                className={`filter-chip ${matchMyInstruments ? 'active' : ''}`}
-                                onClick={() => setMatchMyInstruments(!matchMyInstruments)}
+                                className={`filter-main-btn ${activeFiltersCount > 0 ? 'has-filters' : ''}`}
+                                onClick={() => setIsFilterOpen(!isFilterOpen)}
                             >
-                                ✨ מותאם לי
-                            </button>
-                        )}
-
-                        {/* Genre Dropdown */}
-                        <div className="genre-filter-wrapper">
-                            <button
-                                className={`filter-chip dropdown-trigger ${selectedGenre ? 'active' : ''}`}
-                                onClick={() => setIsGenreOpen(!isGenreOpen)}
-                            >
-                                <Music size={14} />
-                                <span>{selectedGenre ? GENRES.find(g => g.id === selectedGenre)?.nameHe : 'סגנון מוזיקלי'}</span>
-                                {selectedGenre ? (
-                                    <X size={14} className="clear-icon" onClick={(e) => { e.stopPropagation(); setSelectedGenre(null); }} />
-                                ) : (
-                                    <ChevronDown size={14} />
+                                <SlidersHorizontal size={16} />
+                                <span>סינון</span>
+                                {activeFiltersCount > 0 && (
+                                    <span className="filter-count-badge">{activeFiltersCount}</span>
                                 )}
                             </button>
-                            {isGenreOpen && (
-                                <div className="genre-dropdown-menu">
-                                    <div className="genre-grid">
-                                        <button className={`genre-option ${!selectedGenre ? 'selected' : ''}`} onClick={() => { setSelectedGenre(null); setIsGenreOpen(false); }}>הכל</button>
-                                        {GENRES.map(genre => (
-                                            <button key={genre.id} className={`genre-option ${selectedGenre === genre.id ? 'selected' : ''}`} onClick={() => { setSelectedGenre(genre.id); setIsGenreOpen(false); }}>
-                                                {genre.nameHe}
+                            {isFilterOpen && (
+                                <div className="filter-panel">
+                                    <div className="filter-panel-header">
+                                        <span className="filter-panel-title">סינון תוצאות</span>
+                                        {activeFiltersCount > 0 && (
+                                            <button className="filter-clear-all" onClick={() => {
+                                                setSelectedGenre(null);
+                                                setSelectedInstrument(null);
+                                                setMaterialFilter('all');
+                                                setMatchMyInstruments(false);
+                                            }}>
+                                                <X size={14} /> נקה הכל
                                             </button>
-                                        ))}
+                                        )}
                                     </div>
-                                </div>
-                            )}
-                        </div>
 
-                        {/* Instrument Filter */}
-                        <div className="genre-filter-wrapper">
-                            <button
-                                className={`filter-chip dropdown-trigger ${selectedInstrument ? 'active' : ''}`}
-                                onClick={() => setIsInstrumentOpen(!isInstrumentOpen)}
-                            >
-                                <Guitar size={14} />
-                                <span>{selectedInstrument ? INSTRUMENTS.find(i => i.id === selectedInstrument)?.nameHe : 'כלי נגינה'}</span>
-                                {selectedInstrument ? (
-                                    <X size={14} className="clear-icon" onClick={(e) => { e.stopPropagation(); setSelectedInstrument(null); }} />
-                                ) : (
-                                    <ChevronDown size={14} />
-                                )}
-                            </button>
-                            {isInstrumentOpen && (
-                                <div className="genre-dropdown-menu">
-                                    <div className="genre-grid">
-                                        <button className={`genre-option ${!selectedInstrument ? 'selected' : ''}`} onClick={() => { setSelectedInstrument(null); setIsInstrumentOpen(false); }}>הכל</button>
-                                        {INSTRUMENTS.map(inst => (
-                                            <button key={inst.id} className={`genre-option ${selectedInstrument === inst.id ? 'selected' : ''}`} onClick={() => { setSelectedInstrument(inst.id); setIsInstrumentOpen(false); }}>
-                                                {inst.icon}{' '}{inst.nameHe}
+                                    {/* Match My Instruments */}
+                                    {currentView === 'hiring' && user?.instruments && user.instruments.length > 0 && (
+                                        <div className="filter-section">
+                                            <button
+                                                className={`filter-toggle-btn ${matchMyInstruments ? 'active' : ''}`}
+                                                onClick={() => setMatchMyInstruments(!matchMyInstruments)}
+                                            >
+                                                ✨ מותאם לכלים שלי
+                                                {matchMyInstruments && <X size={12} />}
                                             </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Material Filter */}
-                        {currentView === 'hiring' && (
-                            <div className="genre-filter-wrapper">
-                                <button
-                                    className={`filter-chip dropdown-trigger ${materialFilter !== 'all' ? 'active' : ''}`}
-                                    onClick={() => setIsMaterialOpen(!isMaterialOpen)}
-                                >
-                                    <Percent size={14} />
-                                    <span>
-                                        {materialFilter === 'all' ? 'סוג חומר' :
-                                            materialFilter === 'original' ? 'בעיקר מקורי' :
-                                                materialFilter === 'covers' ? 'בעיקר קאברים' : 'משולב'}
-                                    </span>
-                                    {materialFilter !== 'all' ? (
-                                        <X size={14} className="clear-icon" onClick={(e) => { e.stopPropagation(); setMaterialFilter('all'); }} />
-                                    ) : (
-                                        <ChevronDown size={14} />
+                                        </div>
                                     )}
-                                </button>
-                                {isMaterialOpen && (
-                                    <div className="genre-dropdown-menu" style={{ minWidth: '200px' }}>
-                                        <div className="genre-grid" style={{ gridTemplateColumns: '1fr' }}>
-                                            <button className={`genre-option ${materialFilter === 'all' ? 'selected' : ''}`} onClick={() => { setMaterialFilter('all'); setIsMaterialOpen(false); }}>הכל</button>
-                                            <button className={`genre-option ${materialFilter === 'original' ? 'selected' : ''}`} onClick={() => { setMaterialFilter('original'); setIsMaterialOpen(false); }}>🎵 בעיקר מקורי</button>
-                                            <button className={`genre-option ${materialFilter === 'covers' ? 'selected' : ''}`} onClick={() => { setMaterialFilter('covers'); setIsMaterialOpen(false); }}>🎤 בעיקר קאברים</button>
-                                            <button className={`genre-option ${materialFilter === 'mix' ? 'selected' : ''}`} onClick={() => { setMaterialFilter('mix'); setIsMaterialOpen(false); }}>🔀 משולב</button>
+
+                                    {/* Genre */}
+                                    <div className="filter-section">
+                                        <div className="filter-section-label">
+                                            <Music size={14} /> סגנון מוזיקלי
+                                        </div>
+                                        <div className="filter-grid">
+                                            <button className={`filter-option ${!selectedGenre ? 'selected' : ''}`} onClick={() => setSelectedGenre(null)}>הכל</button>
+                                            {GENRES.map(genre => (
+                                                <button key={genre.id} className={`filter-option ${selectedGenre === genre.id ? 'selected' : ''}`} onClick={() => setSelectedGenre(genre.id)}>
+                                                    {genre.nameHe}
+                                                </button>
+                                            ))}
                                         </div>
                                     </div>
-                                )}
-                            </div>
-                        )}
+
+                                    {/* Instrument */}
+                                    <div className="filter-section">
+                                        <div className="filter-section-label">
+                                            <Guitar size={14} /> כלי נגינה
+                                        </div>
+                                        <div className="filter-grid">
+                                            <button className={`filter-option ${!selectedInstrument ? 'selected' : ''}`} onClick={() => setSelectedInstrument(null)}>הכל</button>
+                                            {INSTRUMENTS.map(inst => (
+                                                <button key={inst.id} className={`filter-option ${selectedInstrument === inst.id ? 'selected' : ''}`} onClick={() => setSelectedInstrument(inst.id)}>
+                                                    {inst.icon} {inst.nameHe}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Material */}
+                                    {currentView === 'hiring' && (
+                                        <div className="filter-section">
+                                            <div className="filter-section-label">
+                                                <Percent size={14} /> סוג חומר
+                                            </div>
+                                            <div className="filter-grid filter-grid-1col">
+                                                <button className={`filter-option ${materialFilter === 'all' ? 'selected' : ''}`} onClick={() => setMaterialFilter('all')}>הכל</button>
+                                                <button className={`filter-option ${materialFilter === 'original' ? 'selected' : ''}`} onClick={() => setMaterialFilter('original')}>🎵 בעיקר מקורי</button>
+                                                <button className={`filter-option ${materialFilter === 'covers' ? 'selected' : ''}`} onClick={() => setMaterialFilter('covers')}>🎤 בעיקר קאברים</button>
+                                                <button className={`filter-option ${materialFilter === 'mix' ? 'selected' : ''}`} onClick={() => setMaterialFilter('mix')}>🔀 משולב</button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <button className="filter-apply-btn" onClick={() => setIsFilterOpen(false)}>
+                                        הצג תוצאות
+                                        {filteredItems.length > 0 && <span className="filter-results-count">{filteredItems.length}</span>}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

@@ -45,18 +45,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const signInWithGoogle = async () => {
-        // For now, we simulate a Google login by picking a default user
-        // or starting the flow. In a real app, this would use the Google SDK.
-        console.log('Simulating Google Login...');
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        // Find or create a user for Google
         const users = await repository.getAllUsers();
-        let googleUser = users.find(u => u.email === 'user@gmail.com');
+        const googleUser = users.find(u => u.email === 'user@gmail.com');
 
         if (!googleUser) {
-            // Mock a new user from Google
-            googleUser = await repository.signIn('admin@bandgo.co.il', ''); // Quick fix: Login as admin for now
+            throw new Error('Google login is not configured. Please use email/password login.');
         }
 
         setUser(googleUser);
