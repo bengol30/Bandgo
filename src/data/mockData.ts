@@ -635,7 +635,7 @@ export const mockDirectMessages: DirectMessage[] = [
 ];
 
 // ============ MOCK REPORTS ============
-export const mockReports: Report[] = [
+export const mockReports: AppReport[] = [
     {
         id: 'rep-1',
         reportedByUserId: 'user-2',

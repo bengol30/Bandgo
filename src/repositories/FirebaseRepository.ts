@@ -327,6 +327,11 @@ export class FirebaseRepository implements IRepository {
         return sn.docs.map(d => convertDates(d.data()) as BandApplication);
     }
 
+    async getAllApplications(): Promise<BandApplication[]> {
+        const querySnapshot = await this.safeGetDocs(collection(db, 'applications'), 'getAllApplications');
+        return convertDates(querySnapshot.docs.map((doc: any) => doc.data()));
+    }
+
     async getMyApplications(userId: string): Promise<BandApplication[]> {
         const q = query(collection(db, 'applications'), where('applicantId', '==', userId));
         const sn = await getDocs(q);
@@ -464,6 +469,63 @@ export class FirebaseRepository implements IRepository {
         return convertDates(snap.data()) as Band;
     }
 
+    async leaveBand(bandId: string, userId: string): Promise<{ deleted: boolean }> {
+        const bandRef = doc(db, 'bands', bandId);
+        const bandSnap = await getDoc(bandRef);
+
+        if (!bandSnap.exists()) throw new Error('Band not found');
+
+        const band = convertDates(bandSnap.data()) as Band;
+        const memberIndex = band.members.findIndex(m => m.userId === userId);
+
+        if (memberIndex === -1) throw new Error('User is not a member of this band');
+
+        // Remove the member
+        const updatedMembers = [...band.members];
+        updatedMembers.splice(memberIndex, 1);
+
+        // If the leaving member was the leader, promote the next member
+        if (updatedMembers.length > 0) {
+            const hasLeader = updatedMembers.some(m => m.isLeader);
+            if (!hasLeader) {
+                updatedMembers[0].isLeader = true;
+            }
+
+            await updateDoc(bandRef, {
+                members: updatedMembers,
+                updatedAt: serverTimestamp()
+            });
+
+            // Create system message
+            const user = await this.getUser(userId);
+            if (user) {
+                await this.sendChatMessage(bandId, `${user.displayName} עזב/ה את הלהקה`);
+            }
+
+            return { deleted: false };
+        } else {
+            // If no members left, delete the band entirely
+            await this.forceDeleteBand(bandId);
+            return { deleted: true };
+        }
+    }
+
+    async deleteBand(bandId: string, requestingUserId: string): Promise<void> {
+        const bandRef = doc(db, 'bands', bandId);
+        const bandSnap = await getDoc(bandRef);
+
+        if (!bandSnap.exists()) throw new Error('Band not found');
+
+        const band = convertDates(bandSnap.data()) as Band;
+        const leader = band.members.find(m => m.isLeader);
+
+        if (!leader || leader.userId !== requestingUserId) {
+            throw new Error('Only the band leader can delete the band');
+        }
+
+        await this.forceDeleteBand(bandId);
+    }
+
     async getBandProgress(bandId: string): Promise<BandProgress> {
         // Fetch real progress
         const band = await this.getBand(bandId);
@@ -485,7 +547,8 @@ export class FirebaseRepository implements IRepository {
             rehearsalGoal: band.rehearsalGoal || 10,
             canRequestPerformance: approved >= (band.rehearsalGoal || 10),
             performanceStatus: band.performanceRequestId ? PerformanceRequestStatus.SUBMITTED : undefined,
-            liveSessionStatus: band.liveSessionRequestId ? LiveSessionRequestStatus.SUBMITTED : undefined
+            liveSessionStatus: band.liveSessionRequestId ? LiveSessionRequestStatus.SUBMITTED : undefined,
+            canRequestLiveSession: approved >= 20 // Hardcoded threshold for now as per requirements
         };
     }
 
@@ -657,6 +720,33 @@ export class FirebaseRepository implements IRepository {
 
         await updateDoc(pollRef, { options: updatedOptions });
         return { ...poll, options: updatedOptions };
+    }
+
+    async removeVoteFromPoll(pollId: string, optionId: string, userId: string): Promise<RehearsalPoll> {
+        const pollRef = doc(db, 'rehearsalPolls', pollId);
+        const pollSnap = await getDoc(pollRef);
+
+        if (!pollSnap.exists()) throw new Error('Poll not found');
+
+        const poll = convertDates(pollSnap.data()) as RehearsalPoll;
+        const optionIndex = poll.options.findIndex(o => o.id === optionId);
+
+        if (optionIndex === -1) throw new Error('Option not found');
+
+        // Remove vote
+        const updatedOptions = [...poll.options];
+        if (updatedOptions[optionIndex].votes) {
+            updatedOptions[optionIndex].votes = updatedOptions[optionIndex].votes.filter(v => v.userId !== userId);
+        }
+
+        await updateDoc(pollRef, {
+            options: updatedOptions
+        });
+
+        return {
+            ...poll,
+            options: updatedOptions
+        };
     }
 
     async finalizePoll(pollId: string, optionId: string): Promise<Rehearsal> {

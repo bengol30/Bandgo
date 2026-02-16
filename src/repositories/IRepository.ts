@@ -68,6 +68,7 @@ export interface BandProgress {
     canRequestPerformance: boolean;
     performanceStatus?: string;
     liveSessionStatus?: string;
+    canRequestLiveSession?: boolean;
 }
 
 export interface IRepository {
@@ -94,6 +95,7 @@ export interface IRepository {
 
     // ============ APPLICATIONS ============
     getApplications(bandRequestId: string): Promise<BandApplication[]>;
+    getAllApplications(): Promise<BandApplication[]>;
     getMyApplications(userId: string): Promise<BandApplication[]>;
     createApplication(data: Omit<BandApplication, 'id' | 'createdAt'>): Promise<BandApplication>;
     reviewApplication(id: string, status: 'approved' | 'rejected', note?: string): Promise<BandApplication>;
@@ -104,6 +106,8 @@ export interface IRepository {
     getMyBands(userId: string): Promise<Band[]>;
     formBand(bandRequestId: string, name?: string): Promise<Band>;
     updateBand(id: string, data: Partial<Band>): Promise<Band>;
+    leaveBand(bandId: string, userId: string): Promise<{ deleted: boolean }>;
+    deleteBand(bandId: string, requestingUserId: string): Promise<void>;
     getBandProgress(bandId: string): Promise<BandProgress>;
 
     // ============ REHEARSALS ============
@@ -121,6 +125,7 @@ export interface IRepository {
     getRehearsalPoll(id: string): Promise<RehearsalPoll | null>;
     getActivePolls(bandId: string): Promise<RehearsalPoll[]>;
     voteOnPoll(pollId: string, optionId: string, userId: string, canAttend: boolean): Promise<RehearsalPoll>;
+    removeVoteFromPoll(pollId: string, optionId: string, userId: string): Promise<RehearsalPoll>;
     finalizePoll(pollId: string, optionId: string): Promise<Rehearsal>;
 
     // Rehearsal lifecycle

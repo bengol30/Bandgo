@@ -24,9 +24,9 @@ import {
     Post,
     Comment,
     PostLike,
-    Event,
+    type Event,
     EventRegistration,
-    Notification,
+    type Notification,
     ChatMessage,
     Conversation,
     DirectMessage,
@@ -149,7 +149,7 @@ export class LocalRepository implements IRepository {
                 this.notifications = parsed.notifications || [];
                 this.settings = parsed.settings || mockSettings;
                 this.chatMessages = parsed.chatMessages || [];
-                this.reports = parsed.reports || [...mockReports];
+                this.reports = parsed.reports || [...(mockReports as unknown as AppReport[])];
                 this.conversations = parsed.conversations || [...mockConversations];
                 this.directMessages = parsed.directMessages || [...mockDirectMessages];
                 this.eventSubmissions = parsed.eventSubmissions || [];
@@ -179,7 +179,7 @@ export class LocalRepository implements IRepository {
         this.availabilitySlots = [];
         this.notifications = [...mockNotifications];
         this.settings = { ...mockSettings };
-        this.reports = [...mockReports];
+        this.reports = [...(mockReports as unknown as AppReport[])];
         this.chatMessages = [];
         this.conversations = [...mockConversations];
         this.directMessages = [...mockDirectMessages];
@@ -662,6 +662,19 @@ export class LocalRepository implements IRepository {
 
         this.saveToStorage();
         return this.bands[bandIndex].tasks![taskIndex];
+    }
+
+    async deleteTask(bandId: string, taskId: string): Promise<void> {
+        await this.delay();
+        const bandIndex = this.bands.findIndex(b => b.id === bandId);
+        if (bandIndex === -1) throw new Error('Band not found');
+
+        const tasks = this.bands[bandIndex].tasks || [];
+        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        if (taskIndex !== -1) {
+            this.bands[bandIndex].tasks!.splice(taskIndex, 1);
+            this.saveToStorage();
+        }
     }
 
     async getBandTasks(bandId: string): Promise<import('../types').Task[]> {
@@ -1462,37 +1475,31 @@ export class LocalRepository implements IRepository {
 
     // ============ EVENT SUBMISSIONS ============
 
-    async createEventSubmission(data: Omit<EventSubmission, 'id' | 'status' | 'createdAt' | 'updatedAt'>): Promise<EventSubmission> {
+    async createEventSubmission(data: Omit<EventSubmission, 'id' | 'createdAt' | 'updatedAt' | 'status'>): Promise<EventSubmission> {
         await this.delay();
-        console.log('📝 Creating Event Submission:', data);
         const newSubmission: EventSubmission = {
-            ...data,
             id: uuidv4(),
+            ...data,
             status: EventSubmissionStatus.PENDING,
             createdAt: new Date(),
             updatedAt: new Date(),
-            price: Number(data.price), // Ensure number
-            capacity: data.capacity ? Number(data.capacity) : undefined // Ensure number
         };
         this.eventSubmissions.push(newSubmission);
-        console.log('✅ Submission added. Total count:', this.eventSubmissions.length);
-
-        // Notify admins
-        const admins = this.users.filter(u => u.role === UserRole.ADMIN);
-        const submitter = this.users.find(u => u.id === data.submittedByUserId);
-        admins.forEach(admin => {
-            this.createNotification({
-                userId: admin.id,
-                type: 'event_submission',
-                title: 'בקשת אירוע חדשה',
-                body: `${submitter?.displayName || 'משתמש'} הגיש בקשה לאירוע: ${data.title}`,
-                relatedEntityType: 'event_submission',
-                relatedEntityId: newSubmission.id,
-            });
-        });
-
         this.saveToStorage();
         return newSubmission;
+    }
+
+    async updateEventSubmission(submissionId: string, data: Partial<import('../types').EventSubmission>): Promise<void> {
+        await this.delay();
+        const index = this.eventSubmissions.findIndex(s => s.id === submissionId);
+        if (index === -1) throw new Error('Submission not found');
+
+        this.eventSubmissions[index] = {
+            ...this.eventSubmissions[index],
+            ...data,
+            updatedAt: new Date()
+        };
+        this.saveToStorage();
     }
 
     async getAllEventSubmissions(): Promise<EventSubmission[]> {
@@ -1519,7 +1526,7 @@ export class LocalRepository implements IRepository {
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
 
-    async approveEventSubmission(submissionId: string, adminUserId: string): Promise<Event> {
+    async approveEventSubmission(submissionId: string, adminUserId: string): Promise<void> {
         await this.delay();
         const sub = this.eventSubmissions.find(s => s.id === submissionId);
         if (!sub) throw new Error('Submission not found');
@@ -1576,10 +1583,9 @@ export class LocalRepository implements IRepository {
         });
 
         this.saveToStorage();
-        return newEvent;
     }
 
-    async rejectEventSubmission(submissionId: string, reason: string): Promise<EventSubmission> {
+    async rejectEventSubmission(submissionId: string, reason: string): Promise<void> {
         await this.delay();
         const sub = this.eventSubmissions.find(s => s.id === submissionId);
         if (!sub) throw new Error('Submission not found');
@@ -1599,10 +1605,9 @@ export class LocalRepository implements IRepository {
         });
 
         this.saveToStorage();
-        return sub;
     }
 
-    async requestChangesOnSubmission(submissionId: string, note: string): Promise<EventSubmission> {
+    async requestChangesOnSubmission(submissionId: string, note: string): Promise<void> {
         await this.delay();
         const sub = this.eventSubmissions.find(s => s.id === submissionId);
         if (!sub) throw new Error('Submission not found');
@@ -1622,14 +1627,13 @@ export class LocalRepository implements IRepository {
         });
 
         this.saveToStorage();
-        return sub;
     }
 
     async editAndApproveSubmission(
         submissionId: string,
         adminUserId: string,
         edits: Partial<Pick<EventSubmission, 'title' | 'description' | 'type' | 'startAt' | 'endAt' | 'locationText' | 'capacity'>>
-    ): Promise<Event> {
+    ): Promise<void> {
         await this.delay();
         const sub = this.eventSubmissions.find(s => s.id === submissionId);
         if (!sub) throw new Error('Submission not found');
@@ -1641,7 +1645,7 @@ export class LocalRepository implements IRepository {
         this.saveToStorage();
 
         // Then approve (creates the event)
-        return this.approveEventSubmission(submissionId, adminUserId);
+        await this.approveEventSubmission(submissionId, adminUserId);
     }
 
     async resubmitEventSubmission(submissionId: string, data: Partial<EventSubmission>): Promise<EventSubmission> {

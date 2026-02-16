@@ -599,6 +599,8 @@ export interface Report {
     description?: string;
     status: 'pending' | 'reviewed' | 'dismissed';
     reviewNote?: string;
+    reviewedBy?: string;
+    reviewedAt?: Date;
     createdAt: Date;
     resolvedAt?: Date;
 }
