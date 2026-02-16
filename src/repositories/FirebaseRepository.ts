@@ -48,6 +48,7 @@ import {
     doc,
     getDoc,
     getDocs,
+    getDocsFromServer,
     setDoc,
     updateDoc,
     deleteDoc,
@@ -122,9 +123,15 @@ export class FirebaseRepository implements IRepository {
     }
 
     private async seedDatabaseIfNeeded(): Promise<void> {
-        // Check if users collection is empty
+        // Check if users collection is empty (using getDocsFromServer to bypass cache)
         const usersRef = collection(db, 'users');
-        const snapshot = await getDocs(query(usersRef, limit(1)));
+        let snapshot;
+        try {
+            snapshot = await getDocsFromServer(query(usersRef, limit(1)));
+        } catch (e) {
+            console.warn('Network error or offline: Skipping seed check. Returning early.');
+            return;
+        }
 
         if (!snapshot.empty) return; // Already seeded
 
