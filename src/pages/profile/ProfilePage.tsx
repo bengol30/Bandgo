@@ -18,13 +18,17 @@ import {
     Phone,
     Instagram,
     Globe,
-    Search
+    Search,
+    FileText,
+    Clock,
+    PenTool,
+    Mail,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { repository } from '../../repositories';
-import { Band, Event, EventRegistration } from '../../types';
-import { INSTRUMENTS, GENRES } from '../../data/constants';
+import { Band, BandRequest, BandApplication, Event, BandRequestStatus, ApplicationStatus } from '../../types';
+import { INSTRUMENTS, GENRES, REGIONS } from '../../data/constants';
 import { ExtendedProfileWizard } from '../../components/profile/ExtendedProfileWizard';
 import './Profile.css';
 
@@ -35,6 +39,8 @@ export function ProfilePage() {
 
     const [myBands, setMyBands] = useState<Band[]>([]);
     const [myEvents, setMyEvents] = useState<Event[]>([]);
+    const [myBandRequests, setMyBandRequests] = useState<BandRequest[]>([]);
+    const [myApplications, setMyApplications] = useState<BandApplication[]>([]);
     const [loading, setLoading] = useState(true);
     const [showWizard, setShowWizard] = useState(false);
 
@@ -52,13 +58,17 @@ export function ProfilePage() {
         try {
             setLoading(true);
 
-            const [bandsData, registrationsData, eventsData] = await Promise.all([
+            const [bandsData, registrationsData, eventsData, bandRequestsData, applicationsData] = await Promise.all([
                 repository.getMyBands(user!.id),
                 repository.getMyEventRegistrations(user!.id),
                 repository.getEvents(),
+                repository.getMyBandRequests(user!.id),
+                repository.getMyApplications(user!.id),
             ]);
 
             setMyBands(bandsData);
+            setMyBandRequests(bandRequestsData.filter(br => br.status === BandRequestStatus.OPEN));
+            setMyApplications(applicationsData.filter(a => a.status === ApplicationStatus.PENDING));
 
             // Filter events I'm registered to
             const registeredEventIds = new Set(registrationsData.map(r => r.eventId));
@@ -86,6 +96,11 @@ export function ProfilePage() {
     const getGenreName = (id: string): string => {
         const genre = GENRES.find(g => g.id === id);
         return genre?.nameHe || id;
+    };
+
+    const getRegionName = (id: string): string => {
+        const region = REGIONS.find(r => r.id === id);
+        return region?.nameHe || id;
     };
 
     const getLevelLabel = (level?: string): string => {
@@ -164,17 +179,26 @@ export function ProfilePage() {
 
                 <h1 className="profile-name">{user.displayName}</h1>
 
-                {user.city && (
+                {(user.city || user.region) && (
                     <div className="profile-location">
                         <MapPin size={14} />
-                        <span>{user.city}</span>
+                        <span>
+                            {user.city}{user.city && user.region ? ', ' : ''}{user.region ? getRegionName(user.region) : ''}
+                        </span>
+                    </div>
+                )}
+
+                {user.email && (
+                    <div className="profile-location" style={{ marginTop: '0.25rem' }}>
+                        <Mail size={14} />
+                        <span>{user.email}</span>
                     </div>
                 )}
 
                 {user.bio && <p className="profile-bio">{user.bio}</p>}
 
-                {/* Extended Info Header */}
-                <div className="flex flex-wrap gap-md mt-md justify-center">
+                {/* Badges: search status, vocalist, songwriter */}
+                <div className="flex flex-wrap gap-sm mt-md justify-center">
                     {user.searchStatus && (
                         <div className="badge badge-primary flex items-center gap-xs">
                             <Search size={14} />
@@ -186,26 +210,54 @@ export function ProfilePage() {
                         </div>
                     )}
 
-                    {user.contactInfo && (
-                        <div className="flex gap-sm">
-                            {user.contactInfo.whatsapp && (
-                                <a href={`https://wa.me/${user.contactInfo.whatsapp}`} target="_blank" rel="noreferrer" className="btn-icon btn-ghost text-success">
-                                    <Phone size={20} />
-                                </a>
-                            )}
-                            {user.contactInfo.instagram && (
-                                <a href={`https://instagram.com/${user.contactInfo.instagram.replace('@', '')}`} target="_blank" rel="noreferrer" className="btn-icon btn-ghost text-accent">
-                                    <Instagram size={20} />
-                                </a>
-                            )}
-                            {user.contactInfo.tiktok && (
-                                <a href={`https://tiktok.com/@${user.contactInfo.tiktok.replace('@', '')}`} target="_blank" rel="noreferrer" className="btn-icon btn-ghost">
-                                    <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>♪</span>
-                                </a>
-                            )}
+                    {user.isVocalist && (
+                        <div className="badge badge-primary flex items-center gap-xs">
+                            <Mic size={14} />
+                            <span>זמר/ת</span>
+                        </div>
+                    )}
+
+                    {user.isSongwriter && (
+                        <div className="badge badge-primary flex items-center gap-xs">
+                            <PenTool size={14} />
+                            <span>כותב/ת שירים</span>
                         </div>
                     )}
                 </div>
+
+                {/* Contact links */}
+                {user.contactInfo && (
+                    <div className="flex gap-sm mt-sm justify-center">
+                        {user.contactInfo.whatsapp && (
+                            <a href={`https://wa.me/${user.contactInfo.whatsapp}`} target="_blank" rel="noreferrer" className="btn-icon btn-ghost text-success">
+                                <Phone size={20} />
+                            </a>
+                        )}
+                        {user.contactInfo.instagram && (
+                            <a href={`https://instagram.com/${user.contactInfo.instagram.replace('@', '')}`} target="_blank" rel="noreferrer" className="btn-icon btn-ghost text-accent">
+                                <Instagram size={20} />
+                            </a>
+                        )}
+                        {user.contactInfo.tiktok && (
+                            <a href={`https://tiktok.com/@${user.contactInfo.tiktok.replace('@', '')}`} target="_blank" rel="noreferrer" className="btn-icon btn-ghost">
+                                <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>♪</span>
+                            </a>
+                        )}
+                        {user.contactInfo.website && (
+                            <a href={user.contactInfo.website} target="_blank" rel="noreferrer" className="btn-icon btn-ghost">
+                                <Globe size={20} />
+                            </a>
+                        )}
+                    </div>
+                )}
+
+                {/* Availability */}
+                {user.availabilityDays && (
+                    <div className="flex items-center gap-xs mt-sm justify-center text-muted" style={{ fontSize: '0.85rem' }}>
+                        <Clock size={14} />
+                        <span>{user.availabilityDays}</span>
+                    </div>
+                )}
 
                 <div className="profile-stats">
                     <div className="profile-stat">
@@ -228,7 +280,7 @@ export function ProfilePage() {
                 <div className="container mb-lg">
                     <div className="card bg-bg-secondary border-primary" style={{ padding: 'var(--spacing-lg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div>
-                            <h3 className="text-lg font-bold mb-xs">הפרופיל שלך לא מלא! 🥺</h3>
+                            <h3 className="text-lg font-bold mb-xs">הפרופיל שלך לא מלא!</h3>
                             <p className="text-muted">הוסף פרטי קשר וציוד כדי שמוזיקאים יוכלו למצוא אותך.</p>
                         </div>
                         <button className="btn btn-primary shadow-lg" onClick={() => setShowWizard(true)}>
@@ -236,6 +288,71 @@ export function ProfilePage() {
                         </button>
                     </div>
                 </div>
+            )}
+
+            {/* Open Band Requests */}
+            {myBandRequests.length > 0 && (
+                <section className="profile-section">
+                    <div className="profile-section-header">
+                        <h2 className="profile-section-title">
+                            <FileText size={18} />
+                            בקשות הרכב פתוחות
+                        </h2>
+                    </div>
+                    <div className="profile-bands">
+                        {myBandRequests.map(req => (
+                            <div
+                                key={req.id}
+                                className="profile-band-item"
+                                onClick={() => navigate(`/requests/${req.id}`)}
+                            >
+                                <div className="profile-band-avatar flex-center" style={{ fontSize: '1.5rem' }}>
+                                    📋
+                                </div>
+                                <div className="profile-band-info">
+                                    <div className="profile-band-name">{req.title || req.description.slice(0, 40)}</div>
+                                    <div className="profile-band-role">
+                                        {req.genres.map(g => getGenreName(g)).join(', ')}
+                                        {req.region ? ` • ${getRegionName(req.region)}` : ''}
+                                    </div>
+                                </div>
+                                <ChevronLeft size={20} color="var(--color-text-muted)" />
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {/* Pending Applications */}
+            {myApplications.length > 0 && (
+                <section className="profile-section">
+                    <div className="profile-section-header">
+                        <h2 className="profile-section-title">
+                            <Clock size={18} />
+                            מועמדויות ממתינות
+                        </h2>
+                    </div>
+                    <div className="profile-bands">
+                        {myApplications.map(app => (
+                            <div
+                                key={app.id}
+                                className="profile-band-item"
+                                onClick={() => navigate(`/requests/${app.bandRequestId}`)}
+                            >
+                                <div className="profile-band-avatar flex-center" style={{ fontSize: '1.5rem' }}>
+                                    ⏳
+                                </div>
+                                <div className="profile-band-info">
+                                    <div className="profile-band-name">
+                                        {getInstrumentIcon(app.instrumentId)} {getInstrumentName(app.instrumentId)}
+                                    </div>
+                                    <div className="profile-band-role">ממתין לאישור</div>
+                                </div>
+                                <ChevronLeft size={20} color="var(--color-text-muted)" />
+                            </div>
+                        ))}
+                    </div>
+                </section>
             )}
 
             {/* Instruments */}
@@ -263,12 +380,6 @@ export function ProfilePage() {
                                 )}
                             </div>
                         ))}
-                        {user.isVocalist && (
-                            <div className="profile-instrument">
-                                <span className="profile-instrument-icon">🎤</span>
-                                <span className="profile-instrument-name">זמר/ת</span>
-                            </div>
-                        )}
                     </div>
                 </section>
             )}
@@ -421,7 +532,7 @@ export function ProfilePage() {
                 onClose={() => setShowWizard(false)}
                 onComplete={() => {
                     setShowWizard(false);
-                    // Force reload or just let context update handle it
+                    loadData();
                 }}
             />
         </div>

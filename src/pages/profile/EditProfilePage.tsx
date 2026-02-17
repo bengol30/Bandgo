@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Save, Upload, X, Plus, User as UserIcon, Music, Disc } from 'lucide-react';
+import { ArrowRight, Save, X, Plus, User as UserIcon, Music, Disc, Phone, Search, Star } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { INSTRUMENTS, GENRES, AVATAR_OPTIONS } from '../../data/constants';
-import { InstrumentLevel, UserInstrument } from '../../types';
+import { INSTRUMENTS, GENRES, REGIONS, AVATAR_OPTIONS } from '../../data/constants';
+import { InstrumentLevel, SearchStatus, UserInstrument } from '../../types';
 import './EditProfile.css';
 
 export function EditProfilePage() {
@@ -15,9 +15,22 @@ export function EditProfilePage() {
     const [displayName, setDisplayName] = useState('');
     const [bio, setBio] = useState('');
     const [city, setCity] = useState('');
+    const [region, setRegion] = useState('');
     const [avatarUrl, setAvatarUrl] = useState('');
     const [instruments, setInstruments] = useState<UserInstrument[]>([]);
     const [genres, setGenres] = useState<string[]>([]);
+    const [isVocalist, setIsVocalist] = useState(false);
+    const [isSongwriter, setIsSongwriter] = useState(false);
+    const [searchStatus, setSearchStatus] = useState<SearchStatus | undefined>(undefined);
+    const [contactInfo, setContactInfo] = useState({
+        whatsapp: '',
+        instagram: '',
+        tiktok: '',
+        website: '',
+    });
+    const [gear, setGear] = useState('');
+    const [influences, setInfluences] = useState('');
+    const [availabilityDays, setAvailabilityDays] = useState('');
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -25,9 +38,22 @@ export function EditProfilePage() {
             setDisplayName(user.displayName || '');
             setBio(user.bio || '');
             setCity(user.city || '');
+            setRegion(user.region || '');
             setAvatarUrl(user.avatarUrl || '');
             setInstruments(user.instruments || []);
             setGenres(user.genres || []);
+            setIsVocalist(user.isVocalist || false);
+            setIsSongwriter(user.isSongwriter || false);
+            setSearchStatus(user.searchStatus);
+            setContactInfo({
+                whatsapp: user.contactInfo?.whatsapp || '',
+                instagram: user.contactInfo?.instagram || '',
+                tiktok: user.contactInfo?.tiktok || '',
+                website: user.contactInfo?.website || '',
+            });
+            setGear(user.gear || '');
+            setInfluences(user.influences?.join(', ') || '');
+            setAvailabilityDays(user.availabilityDays || '');
         } else {
             navigate('/');
         }
@@ -41,11 +67,19 @@ export function EditProfilePage() {
                 displayName,
                 bio,
                 city,
+                region: region || undefined,
                 avatarUrl,
                 instruments,
-                genres
+                genres,
+                isVocalist,
+                isSongwriter,
+                searchStatus,
+                contactInfo,
+                gear,
+                influences: influences.split(',').map(s => s.trim()).filter(s => s),
+                availabilityDays: availabilityDays || undefined,
             });
-            showToast('הפרופיל עודכן בהצלחה! 🎉', 'success');
+            showToast('הפרופיל עודכן בהצלחה!', 'success');
             navigate('/profile');
         } catch (error) {
             console.error(error);
@@ -164,6 +198,20 @@ export function EditProfilePage() {
                                 />
                             </div>
 
+                            <div className="form-group mb-md">
+                                <label className="form-label">אזור</label>
+                                <select
+                                    className="form-input w-full"
+                                    value={region}
+                                    onChange={e => setRegion(e.target.value)}
+                                >
+                                    <option value="">בחר אזור</option>
+                                    {REGIONS.map(r => (
+                                        <option key={r.id} value={r.id}>{r.nameHe}</option>
+                                    ))}
+                                </select>
+                            </div>
+
                             <div className="form-group col-span-2">
                                 <label className="form-label">קצת עליי (Bio)</label>
                                 <textarea
@@ -174,6 +222,39 @@ export function EditProfilePage() {
                                     placeholder="ספר/י קצת על הרקע המוזיקלי שלך..."
                                 />
                             </div>
+                        </div>
+                    </section>
+
+                    {/* Search Status */}
+                    <section className="edit-section">
+                        <div className="edit-section-header">
+                            <h2 className="edit-section-title">
+                                <Search size={20} className="text-primary" />
+                                סטטוס חיפוש
+                            </h2>
+                        </div>
+                        <div className="genres-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
+                            <button
+                                type="button"
+                                className={`genre-chip ${searchStatus === SearchStatus.LOOKING ? 'selected' : ''}`}
+                                onClick={() => setSearchStatus(SearchStatus.LOOKING)}
+                            >
+                                מחפש הרכב פעיל
+                            </button>
+                            <button
+                                type="button"
+                                className={`genre-chip ${searchStatus === SearchStatus.AVAILABLE_FOR_JAMS ? 'selected' : ''}`}
+                                onClick={() => setSearchStatus(SearchStatus.AVAILABLE_FOR_JAMS)}
+                            >
+                                זמין לג'אמים
+                            </button>
+                            <button
+                                type="button"
+                                className={`genre-chip ${searchStatus === SearchStatus.NOT_LOOKING ? 'selected' : ''}`}
+                                onClick={() => setSearchStatus(SearchStatus.NOT_LOOKING)}
+                            >
+                                לא מחפש כרגע
+                            </button>
                         </div>
                     </section>
 
@@ -230,6 +311,28 @@ export function EditProfilePage() {
                                 </div>
                             )}
                         </div>
+
+                        {/* Vocalist & Songwriter toggles */}
+                        <div className="flex gap-md mt-md">
+                            <label className="flex items-center gap-sm cursor-pointer" style={{ userSelect: 'none' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={isVocalist}
+                                    onChange={e => setIsVocalist(e.target.checked)}
+                                    className="form-checkbox"
+                                />
+                                <span>זמר/ת</span>
+                            </label>
+                            <label className="flex items-center gap-sm cursor-pointer" style={{ userSelect: 'none' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={isSongwriter}
+                                    onChange={e => setIsSongwriter(e.target.checked)}
+                                    className="form-checkbox"
+                                />
+                                <span>כותב/ת שירים</span>
+                            </label>
+                        </div>
                     </section>
 
                     {/* Genres */}
@@ -251,6 +354,101 @@ export function EditProfilePage() {
                                     {genre.nameHe}
                                 </button>
                             ))}
+                        </div>
+                    </section>
+
+                    {/* Contact Info */}
+                    <section className="edit-section">
+                        <div className="edit-section-header">
+                            <h2 className="edit-section-title">
+                                <Phone size={20} className="text-success" />
+                                פרטי קשר
+                            </h2>
+                        </div>
+                        <div className="form-grid gap-md">
+                            <div className="form-group mb-md">
+                                <label className="form-label">WhatsApp (מספר טלפון)</label>
+                                <input
+                                    type="tel"
+                                    className="form-input w-full"
+                                    value={contactInfo.whatsapp}
+                                    onChange={e => setContactInfo({ ...contactInfo, whatsapp: e.target.value })}
+                                    placeholder="050-1234567"
+                                />
+                            </div>
+                            <div className="form-group mb-md">
+                                <label className="form-label">Instagram</label>
+                                <input
+                                    type="text"
+                                    className="form-input w-full"
+                                    value={contactInfo.instagram}
+                                    onChange={e => setContactInfo({ ...contactInfo, instagram: e.target.value })}
+                                    placeholder="@username"
+                                />
+                            </div>
+                            <div className="form-group mb-md">
+                                <label className="form-label">TikTok</label>
+                                <input
+                                    type="text"
+                                    className="form-input w-full"
+                                    value={contactInfo.tiktok}
+                                    onChange={e => setContactInfo({ ...contactInfo, tiktok: e.target.value })}
+                                    placeholder="@username"
+                                />
+                            </div>
+                            <div className="form-group mb-md">
+                                <label className="form-label">אתר אישי</label>
+                                <input
+                                    type="url"
+                                    className="form-input w-full"
+                                    value={contactInfo.website}
+                                    onChange={e => setContactInfo({ ...contactInfo, website: e.target.value })}
+                                    placeholder="https://mysite.com"
+                                />
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Gear & Influences */}
+                    <section className="edit-section">
+                        <div className="edit-section-header">
+                            <h2 className="edit-section-title">
+                                <Star size={20} className="text-accent" />
+                                ציוד והשפעות
+                            </h2>
+                        </div>
+
+                        <div className="form-group mb-md">
+                            <label className="form-label">ציוד (מגברים, גיטרות, פדאלים...)</label>
+                            <textarea
+                                className="form-input w-full"
+                                rows={3}
+                                value={gear}
+                                onChange={e => setGear(e.target.value)}
+                                placeholder="Fender Stratocaster, Marshall DSL40CR..."
+                            />
+                        </div>
+
+                        <div className="form-group mb-md">
+                            <label className="form-label">השפעות מוזיקליות (מופרדות בפסיקים)</label>
+                            <textarea
+                                className="form-input w-full"
+                                rows={2}
+                                value={influences}
+                                onChange={e => setInfluences(e.target.value)}
+                                placeholder="Pink Floyd, Tame Impala, Led Zeppelin..."
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">ימי זמינות לחזרות</label>
+                            <input
+                                type="text"
+                                className="form-input w-full"
+                                value={availabilityDays}
+                                onChange={e => setAvailabilityDays(e.target.value)}
+                                placeholder="ראשון, שלישי, חמישי בערב"
+                            />
                         </div>
                     </section>
 
