@@ -170,6 +170,7 @@ export interface BandRequest {
     creatorId: string;
     title?: string;
     description: string;
+    coverImageUrl?: string;
     type: BandRequestType;
     status: BandRequestStatus;
     genres: string[];
@@ -197,6 +198,10 @@ export interface BandRequest {
     };
     influences?: string[];
     existingRehearsalSpace?: boolean;
+
+    // Enhanced Details
+    socialLinks?: { display: string; url: string }[];
+    repertoire?: { song: string; artist: string; note?: string }[];
 
     createdAt: Date;
     updatedAt: Date;

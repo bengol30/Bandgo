@@ -42,7 +42,7 @@ import {
     Task,
     PostType
 } from '../types';
-import { db } from '../config/firebase';
+import { db, storage } from '../config/firebase';
 import {
     collection,
     doc,
@@ -60,6 +60,7 @@ import {
     limit,
     writeBatch
 } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 
 // Helper to convert Firestore dates
@@ -420,7 +421,7 @@ export class FirebaseRepository implements IRepository {
         // In a real scenario, we would also fetch approved applications and add those users
         const members: any[] = [{
             userId: creator.id,
-            instrumentId: creator.instruments[0]?.instrumentId || 'vocalist', // Fallback
+            instrumentId: creator.instruments?.[0]?.instrumentId || 'vocalist', // Fallback
             joinedAt: new Date(),
             isLeader: true
         }];
@@ -441,7 +442,7 @@ export class FirebaseRepository implements IRepository {
         const newBand: Band = {
             id: uuidv4(),
             name: name || bandRequest.title || 'להקת ללא שם',
-            coverImageUrl: undefined,
+            coverImageUrl: bandRequest.coverImageUrl,
             description: bandRequest.description,
             genres: bandRequest.genres,
             city: bandRequest.city,
@@ -462,7 +463,7 @@ export class FirebaseRepository implements IRepository {
 
         // 1. Create Band
         const bandRef = doc(db, 'bands', newBand.id);
-        batch.set(bandRef, newBand);
+        batch.set(bandRef, sanitizeData(newBand));
 
         // 2. Update Band Request Status
         const reqRef = doc(db, 'bandRequests', bandRequestId);
@@ -1010,7 +1011,7 @@ export class FirebaseRepository implements IRepository {
             createdAt: new Date(),
             updatedAt: new Date()
         };
-        await setDoc(doc(db, 'events', newEventId), newEvent);
+        await setDoc(doc(db, 'events', newEventId), sanitizeData(newEvent));
 
         // 3. Update Submission Status
         await updateDoc(doc(db, 'eventSubmissions', submissionId), {
@@ -1183,13 +1184,13 @@ export class FirebaseRepository implements IRepository {
             createdAt: new Date(),
             updatedAt: new Date()
         };
-        await setDoc(doc(db, 'events', id), event);
+        await setDoc(doc(db, 'events', id), sanitizeData(event));
         return event;
     }
 
     async updateEvent(id: string, data: Partial<Event>): Promise<Event> {
         const ref = doc(db, 'events', id);
-        await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
+        await updateDoc(ref, sanitizeData({ ...data, updatedAt: serverTimestamp() }));
         const snap = await getDoc(ref);
         return convertDates(snap.data()) as Event;
     }
@@ -1254,6 +1255,10 @@ export class FirebaseRepository implements IRepository {
         // If convertDates handles it on read, we are good.
 
         await updateDoc(doc(db, 'eventSubmissions', submissionId), sanitized);
+    }
+
+    async deleteEventSubmission(submissionId: string): Promise<void> {
+        await deleteDoc(doc(db, 'eventSubmissions', submissionId));
     }
 
     async getMyEventSubmissions(userId: string): Promise<EventSubmission[]> {
@@ -1340,6 +1345,10 @@ export class FirebaseRepository implements IRepository {
     async updateSettings(data: Partial<SystemSettings>): Promise<SystemSettings> { return {} as any; }
 
     // ============ FILES ============
-    async uploadFile(file: File, path: string): Promise<string> { return ""; }
+    async uploadFile(file: File, path: string): Promise<string> {
+        const storageRef = ref(storage, path);
+        const snapshot = await uploadBytes(storageRef, file);
+        return await getDownloadURL(snapshot.ref);
+    }
     async deleteFile(url: string): Promise<void> { }
 }

@@ -10,7 +10,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { Modal } from '../../components/Modal';
 import { repository } from '../../repositories';
 import { BandRequestType, BandRequestStatus, InstrumentSlot } from '../../types';
-import { INSTRUMENTS, GENRES, REGIONS } from '../../data/constants';
+import { INSTRUMENTS, GENRES, REGIONS, BAND_COVER_OPTIONS } from '../../data/constants';
 import { getInstrumentName, getInstrumentIcon } from '../../utils';
 import './CreateBandRequest.css';
 
@@ -35,6 +35,12 @@ export function CreateBandRequestPage() {
 
     // Open specific
     const [maxMembers, setMaxMembers] = useState(4);
+
+    // Cover Image
+    const [selectedCoverUrl, setSelectedCoverUrl] = useState('');
+    const [customCoverUrl, setCustomCoverUrl] = useState('');
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [showCoverModal, setShowCoverModal] = useState(false);
 
     // Instrument Selector Modal
     const [showInstrumentModal, setShowInstrumentModal] = useState(false);
@@ -80,9 +86,30 @@ export function CreateBandRequestPage() {
             showToast('נא לבחור לפחות סגנון אחד', 'error');
             return;
         }
+        if (!selectedCoverUrl && !imageFile && !customCoverUrl) {
+            showToast('נא לבחור תמונת קאבר', 'error');
+            return;
+        }
 
         try {
             setLoading(true);
+
+            let finalCoverUrl = selectedCoverUrl;
+
+            // Upload image if file selected
+            if (imageFile) {
+                try {
+                    const path = `bands/covers/${user.id}_${Date.now()}_${imageFile.name}`;
+                    finalCoverUrl = await repository.uploadFile(imageFile, path);
+                } catch (uploadError) {
+                    console.error('Failed to upload cover image:', uploadError);
+                    showToast('שגיאה בהעלאת התמונה', 'error');
+                    setLoading(false);
+                    return;
+                }
+            } else if (customCoverUrl) {
+                finalCoverUrl = customCoverUrl;
+            }
 
             await repository.createBandRequest({
                 creatorId: user.id,
@@ -100,6 +127,7 @@ export function CreateBandRequestPage() {
                 currentMembers: [user.id],
                 sketches: [],
                 sketchPending: false,
+                coverImageUrl: finalCoverUrl,
             });
 
             showToast('ההרכב נוצר בהצלחה!', 'success');
@@ -290,6 +318,71 @@ export function CreateBandRequestPage() {
                         </div>
                     </section>
 
+                    {/* Cover Image */}
+                    <section className="form-section">
+                        <h2>תמונת קאבר</h2>
+                        <p className="text-secondary text-sm mb-4">בחר תמונה שתייצג את ההרכב שלך</p>
+
+                        <div className="cover-image-section">
+                            {/* Selected Image Preview */}
+                            <div className="selected-cover-preview">
+                                {selectedCoverUrl ? (
+                                    <div className="preview-container">
+                                        <img src={selectedCoverUrl} alt="Selected cover" />
+                                        <button
+                                            type="button"
+                                            className="btn btn-icon btn-danger remove-cover-btn"
+                                            onClick={() => {
+                                                setSelectedCoverUrl('');
+                                                setCustomCoverUrl('');
+                                                setImageFile(null);
+                                            }}
+                                        >
+                                            <X size={20} />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="no-cover-placeholder">
+                                        <div className="placeholder-icon">📷</div>
+                                        <span>לא נבחרה תמונה</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="cover-actions">
+                                <button
+                                    type="button"
+                                    className="btn btn-outline"
+                                    onClick={() => setShowCoverModal(true)}
+                                >
+                                    <Music size={18} className="me-2" />
+                                    בחר ממאגר התמונות
+                                </button>
+
+                                <div className="file-upload-wrapper">
+                                    <input
+                                        type="file"
+                                        id="cover-upload"
+                                        accept="image/*"
+                                        className="hidden-file-input"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                setImageFile(file);
+                                                setSelectedCoverUrl(URL.createObjectURL(file));
+                                                setCustomCoverUrl(''); // Clear custom URL if file selected
+                                            }
+                                        }}
+                                    />
+                                    <label htmlFor="cover-upload" className="btn btn-outline">
+                                        <Plus size={18} className="me-2" />
+                                        העלה תמונה מהמכשיר
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
                     <div className="form-actions">
                         <button
                             type="submit"
@@ -323,6 +416,35 @@ export function CreateBandRequestPage() {
                         >
                             <span className="instrument-icon-lg">{inst.icon}</span>
                             <span className="instrument-name">{inst.nameHe}</span>
+                        </div>
+                    ))}
+                </div>
+            </Modal>
+
+            {/* Cover Image Modal */}
+            <Modal
+                isOpen={showCoverModal}
+                onClose={() => setShowCoverModal(false)}
+                title="בחר תמונת קאבר"
+            >
+                <div className="cover-selection-grid-modal">
+                    {BAND_COVER_OPTIONS.map((url, index) => (
+                        <div
+                            key={index}
+                            className={`cover-option ${selectedCoverUrl === url ? 'selected' : ''}`}
+                            onClick={() => {
+                                setSelectedCoverUrl(url);
+                                setCustomCoverUrl('');
+                                setImageFile(null);
+                                setShowCoverModal(false);
+                            }}
+                        >
+                            <img src={url} alt={`Cover option ${index + 1}`} />
+                            {selectedCoverUrl === url && (
+                                <div className="selected-overlay">
+                                    <Check size={24} />
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>

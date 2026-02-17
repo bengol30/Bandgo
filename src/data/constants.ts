@@ -84,10 +84,19 @@ export const AVATAR_OPTIONS = [
 ];
 
 export const BAND_COVER_OPTIONS = [
-    'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?w=1200&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1501612780327-45045538702b?w=1200&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1459749411177-27595190a8e2?w=1200&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1514525253440-b393452e8d26?w=1200&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1501612780327-45045538702b?auto=format&fit=crop&w=800&q=80', // 1. Guitar close up
+    'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80', // 2. Microphone/Stage
+    'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?auto=format&fit=crop&w=800&q=80', // 3. Crowd/Concert
+    'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?auto=format&fit=crop&w=800&q=80', // 4. Club neon
+    'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=800&q=80', // 5. DJ/Electronic
+    'https://images.unsplash.com/photo-1574169208507-84376144848b?auto=format&fit=crop&w=800&q=80', // 6. Drum kit detailed (Replaced old #6)
+    'https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&w=800&q=80', // 7. Vinyl Record (New)
+    'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=800&q=80', // 8. Piano recital (Moved/Replaced)
+    'https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?auto=format&fit=crop&w=800&q=80', // 9. Keyboard (Moved/Replaced)
+    'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&w=800&q=80', // 10. Guitarist Silhouette (New/Replacement)
+    'https://images.unsplash.com/photo-1487180144351-b8472da7d491?auto=format&fit=crop&w=800&q=80', // 11. Concert crowd arms
+    'https://images.unsplash.com/photo-1593697821028-7cc59cfd7b99?auto=format&fit=crop&w=800&q=80', // 12. Studio Microphone (New)
+    'https://images.unsplash.com/photo-1519508234439-4f23643125c1?auto=format&fit=crop&w=800&q=80', // 13. Saxophone/Jazz (New)
+    'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=800&q=80', // 14. Songwriting/Notebook (New)
+    'https://images.unsplash.com/photo-1445985543470-4102eb9c51e7?auto=format&fit=crop&w=800&q=80', // 15. Band Setup (New)
 ];

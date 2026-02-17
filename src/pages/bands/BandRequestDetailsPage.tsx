@@ -53,6 +53,7 @@ export function BandRequestDetailsPage() {
     // Band naming modal state
     const [showBandNameModal, setShowBandNameModal] = useState(false);
     const [bandName, setBandName] = useState('');
+    const [isCreatingBand, setIsCreatingBand] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -165,15 +166,19 @@ export function BandRequestDetailsPage() {
     };
 
     const handleConvertToBand = async () => {
-        if (!request) return;
+        if (!request || isCreatingBand) return;
         const finalName = bandName.trim() || request.title;
         try {
+            setIsCreatingBand(true);
             const newBand = await repository.formBand(request.id, finalName);
             showToast('מזל טוב! הלהקה נוצרה בהצלחה 🎉', 'success');
             setShowBandNameModal(false);
             navigate(`/bands/${newBand.id}/workspace`);
         } catch (e) {
+            console.error('Failed to form band:', e);
             showToast('שגיאה ביצירת הלהקה', 'error');
+        } finally {
+            setIsCreatingBand(false);
         }
     };
 
@@ -676,7 +681,7 @@ export function BandRequestDetailsPage() {
 
             {/* Band Name Modal */}
             {showBandNameModal && (
-                <div className="modal-overlay" onClick={() => setShowBandNameModal(false)}>
+                <div className="modal-overlay" onClick={() => !isCreatingBand && setShowBandNameModal(false)}>
                     <div className="modal-content band-name-modal" onClick={e => e.stopPropagation()}>
                         <h2>🎸 בחר שם ללהקה</h2>
                         <p className="text-secondary text-sm">בחר שם ויצא לדרך!</p>
@@ -687,13 +692,14 @@ export function BandRequestDetailsPage() {
                             value={bandName}
                             onChange={e => setBandName(e.target.value)}
                             autoFocus
+                            disabled={isCreatingBand}
                         />
                         <div className="modal-actions">
-                            <button className="btn btn-ghost" onClick={() => setShowBandNameModal(false)}>
+                            <button className="btn btn-ghost" onClick={() => setShowBandNameModal(false)} disabled={isCreatingBand}>
                                 ביטול
                             </button>
-                            <button className="btn btn-primary" onClick={handleConvertToBand}>
-                                צור להקה! 🚀
+                            <button className="btn btn-primary" onClick={handleConvertToBand} disabled={isCreatingBand}>
+                                {isCreatingBand ? 'יוצר...' : 'צור להקה! 🚀'}
                             </button>
                         </div>
                     </div>

@@ -13,10 +13,9 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { repository } from '../../repositories';
-import { Band, BandRequest, User, BandRequestType } from '../../types';
+import { Band, BandRequest, User, BandRequestType, BandRequestStatus } from '../../types';
 import { GENRES, INSTRUMENTS } from '../../data/constants';
 import { getInstrumentName, getInstrumentIcon, getGenreName } from '../../utils';
-import { BandProgress } from '../../components/bands/BandProgress';
 import './BandsUnified.css';
 
 type ViewType = 'hiring' | 'active';
@@ -44,6 +43,7 @@ export function BandsPage() {
     // UI States
     const [matchMyInstruments, setMatchMyInstruments] = useState(false);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [isMyProjectsOpen, setIsMyProjectsOpen] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -109,6 +109,9 @@ export function BandsPage() {
         // First pass: Match My Instruments (for hiring view)
         if (currentView === 'hiring') {
             content = requests.filter(req => {
+                // Only show open requests
+                if (req.status !== BandRequestStatus.OPEN) return false;
+
                 if (matchMyInstruments && user?.instruments) {
                     const userInstrumentIds = user.instruments.map(i => i.instrumentId);
                     const hasMatch = req.instrumentSlots?.some(slot =>
@@ -191,52 +194,55 @@ export function BandsPage() {
             {/* My Bands & Requests Section */}
             {myItems.length > 0 && (
                 <div id="my-bands-section" className="my-bands-section my-bands-featured">
-                    <div className="section-header">
-                        <h2 className="section-title-small">הפרויקטים שלי</h2>
-                        <button className="btn-text" onClick={handleCreate}>
-                            <Plus size={16} />
-                            <span>הרכב חדש</span>
-                        </button>
-                    </div>
-                    <div className="my-bands-scroll">
-                        {myItems.map(item => {
-                            const isBand = 'members' in item && Array.isArray((item as any).members) && (item as any).members[0]?.userId; // Rough check for Band type vs Request
-                            // Check for Band type properties: members array with userId objects
-                            // BandRequest has currentMembers array of strings
+                    <button
+                        className={`my-projects-toggle-btn ${isMyProjectsOpen ? 'open' : ''}`}
+                        onClick={() => setIsMyProjectsOpen(!isMyProjectsOpen)}
+                    >
+                        <div className="toggle-label">
+                            <span className="toggle-icon">📂</span>
+                            <span className="toggle-text">הפרויקטים שלי ({myItems.length})</span>
+                        </div>
+                        <ChevronDown size={20} className={`toggle-chevron ${isMyProjectsOpen ? 'rotate' : ''}`} />
+                    </button>
 
-                            const isRealBand = 'approvedRehearsalsCount' in item;
-                            const linkTo = isRealBand ? `/bands/${item.id}/workspace` : `/requests/${item.id}`;
-                            const name = isRealBand ? (item as Band).name : (item as BandRequest).title;
-                            const memberCount = isRealBand ? (item as Band).members.length : (item as BandRequest).currentMembers.length;
-                            const image = isRealBand ? (item as Band).coverImageUrl : null;
+                    {isMyProjectsOpen && (
+                        <div className="my-bands-scroll-container">
+                            <div className="my-bands-scroll">
+                                {myItems.map(item => {
+                                    const isRealBand = 'approvedRehearsalsCount' in item;
+                                    const linkTo = isRealBand ? `/bands/${item.id}/workspace` : `/requests/${item.id}`;
+                                    const name = isRealBand ? (item as Band).name : (item as BandRequest).title;
+                                    const image = isRealBand ? (item as Band).coverImageUrl : null;
 
-                            return (
-                                <Link
-                                    key={item.id}
-                                    to={linkTo}
-                                    className={`my-band-card-mini ${isRealBand ? 'type-band' : 'type-request'}`}
-                                >
-                                    <div className="mini-cover">
-                                        {image ? (
-                                            <img src={image} alt={name} />
-                                        ) : (
-                                            <Music size={24} />
-                                        )}
-                                        {!isRealBand && <div className="mini-badge">גיוס</div>}
-                                    </div>
-                                    <div className="mini-info">
-                                        <h3>{name}</h3>
-                                        {isRealBand ? (
-                                            <span className="status-text band">פעיל</span>
-                                        ) : (
-                                            <span className="status-text request">מגייס</span>
-                                        )}
-                                    </div>
-                                    <ChevronDown size={16} style={{ transform: 'rotate(90deg)', opacity: 0.5 }} />
-                                </Link>
-                            );
-                        })}
-                    </div>
+                                    return (
+                                        <Link
+                                            key={item.id}
+                                            to={linkTo}
+                                            className={`my-band-card-mini ${isRealBand ? 'type-band' : 'type-request'}`}
+                                        >
+                                            <div className="mini-cover">
+                                                {image ? (
+                                                    <img src={image} alt={name} />
+                                                ) : (
+                                                    <Music size={24} />
+                                                )}
+                                                {!isRealBand && <div className="mini-badge">גיוס</div>}
+                                            </div>
+                                            <div className="mini-info">
+                                                <h3>{name}</h3>
+                                                {isRealBand ? (
+                                                    <span className="status-text band">פעיל</span>
+                                                ) : (
+                                                    <span className="status-text request">מגייס</span>
+                                                )}
+                                            </div>
+                                            <ChevronDown size={16} style={{ transform: 'rotate(90deg)', opacity: 0.5 }} />
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -464,75 +470,94 @@ function UnifiedBandCard({ item, type, users, to }: UnifiedBandCardProps) {
                     ))}
                 </div>
 
-                {/* Members Stack */}
-                <div className="card-members-section">
-                    <div className="card-members">
-                        <div className="member-stack">
-                            {type === 'hiring' ? (
-                                // For requests: currentMembers is string[]
-                                (anyItem.currentMembers || []).slice(0, 4).map((memberId: string) => {
-                                    const u = users[memberId];
-                                    return u?.avatarUrl ? (
-                                        <img key={memberId} src={u.avatarUrl} alt="" className="stack-avatar" />
-                                    ) : (
-                                        <div key={memberId} className="stack-avatar placeholder">
-                                            {u?.displayName?.charAt(0) || '?'}
+                {/* Bottom section: differs by type */}
+                {type === 'hiring' ? (
+                    <>
+                        {/* Member stack for requests */}
+                        <div className="card-members-section">
+                            <div className="card-members">
+                                <div className="member-stack">
+                                    {(anyItem.currentMembers || []).slice(0, 4).map((memberId: string) => {
+                                        const u = users[memberId];
+                                        return u?.avatarUrl ? (
+                                            <img key={memberId} src={u.avatarUrl} alt="" className="stack-avatar" />
+                                        ) : (
+                                            <div key={memberId} className="stack-avatar placeholder">
+                                                {u?.displayName?.charAt(0) || '?'}
+                                            </div>
+                                        );
+                                    })}
+                                    {(anyItem.currentMembers || []).length > 4 && (
+                                        <div className="stack-avatar more">
+                                            +{anyItem.currentMembers.length - 4}
                                         </div>
-                                    );
-                                })
-                            ) : (
-                                // For bands: members is {userId, instrumentId}[]
-                                (anyItem.members || []).slice(0, 4).map((m: any) => {
-                                    const u = users[m.userId];
-                                    return u?.avatarUrl ? (
-                                        <img key={m.userId} src={u.avatarUrl} alt="" className="stack-avatar" />
-                                    ) : (
-                                        <div key={m.userId} className="stack-avatar placeholder">
-                                            {u?.displayName?.charAt(0) || '?'}
+                                    )}
+                                </div>
+                                <span className="members-count-label">
+                                    {anyItem.currentMembers?.length || 0} חברים
+                                </span>
+                            </div>
+                        </div>
+                        {/* Instrument slots */}
+                        <div className="card-slots">
+                            {anyItem.instrumentSlots?.slice(0, 3).map((slot: any, idx: number) => {
+                                const filled = slot.filledBy.length;
+                                const total = slot.quantity;
+                                const isFull = filled >= total;
+                                return (
+                                    <div key={idx} className="slot-item">
+                                        <div className="slot-name">
+                                            {getInstrumentIcon(slot.instrumentId)}
+                                            <span>{getInstrumentName(slot.instrumentId)}</span>
                                         </div>
-                                    );
-                                })
-                            )}
-                            {((type === 'hiring' ? anyItem.currentMembers : anyItem.members) || []).length > 4 && (
-                                <div className="stack-avatar more">
-                                    +{(type === 'hiring' ? anyItem.currentMembers : anyItem.members).length - 4}
+                                        <span className={`slot-status ${isFull ? 'full' : 'open'}`}>
+                                            {filled}/{total}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                            {anyItem.type === BandRequestType.OPEN && (
+                                <div className="slot-item">
+                                    <span className="slot-name">🎸 כל הכלים</span>
+                                    <span className="slot-status open">פתוח לכולם</span>
                                 </div>
                             )}
                         </div>
-                        <span className="members-count-label">
-                            {(type === 'hiring' ? anyItem.currentMembers : anyItem.members)?.length || 0} חברים
-                        </span>
-                    </div>
-                </div>
-
-                {/* Specific Content per Type */}
-                {type === 'hiring' ? (
-                    <div className="card-slots">
-                        {anyItem.instrumentSlots?.slice(0, 3).map((slot: any, idx: number) => {
-                            const filled = slot.filledBy.length;
-                            const total = slot.quantity;
-                            const isFull = filled >= total;
-                            return (
-                                <div key={idx} className="slot-item">
-                                    <div className="slot-name">
-                                        {getInstrumentIcon(slot.instrumentId)}
-                                        <span>{getInstrumentName(slot.instrumentId)}</span>
-                                    </div>
-                                    <span className={`slot-status ${isFull ? 'full' : 'open'}`}>
-                                        {filled}/{total}
-                                    </span>
-                                </div>
-                            );
-                        })}
-                        {anyItem.type === BandRequestType.OPEN && (
-                            <div className="slot-item">
-                                <span className="slot-name">🎸 כל הכלים</span>
-                                <span className="slot-status open">פתוח לכולם</span>
-                            </div>
-                        )}
-                    </div>
+                    </>
                 ) : (
-                    <BandProgress band={item as Band} compact={true} />
+                    /* Active band: show member circles */
+                    <div className="card-band-members">
+                        <div className="card-band-members-label">
+                            <span>{(anyItem.members || []).length} חברים</span>
+                        </div>
+                        <div className="card-band-members-row">
+                            {(anyItem.members || []).slice(0, 5).map((m: any) => {
+                                const u = users[m.userId];
+                                return (
+                                    <div key={m.userId} className="card-band-member">
+                                        {u?.avatarUrl ? (
+                                            <img src={u.avatarUrl} alt={u.displayName} className="card-band-member-avatar" />
+                                        ) : (
+                                            <div className="card-band-member-avatar placeholder">
+                                                {u?.displayName?.charAt(0) || '?'}
+                                            </div>
+                                        )}
+                                        <span className="card-band-member-name">
+                                            {u?.displayName?.split(' ')[0] || '?'}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                            {(anyItem.members || []).length > 5 && (
+                                <div className="card-band-member">
+                                    <div className="card-band-member-avatar more">
+                                        +{anyItem.members.length - 5}
+                                    </div>
+                                    <span className="card-band-member-name">עוד</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 )}
             </div>
         </Link>

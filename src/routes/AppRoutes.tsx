@@ -37,6 +37,7 @@ const NotFoundPage = () => (
 );
 
 export function AppRoutes() {
+    console.log('[DEBUG] AppRoutes rendering');
     const { loading } = useAuth();
 
     if (loading) {

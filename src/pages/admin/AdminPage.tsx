@@ -687,89 +687,134 @@ export function AdminPage() {
                     {activeTab === 'submissions' && (
                         <div className="tab-content">
                             <div className="section-header">
-                                <h2>בקשות אירועים ממתינות</h2>
+                                <h2>ניהול בקשות אירועים</h2>
                                 <button className="btn btn-secondary btn-sm" onClick={() => loadData('submissions')}>
                                     רענן
                                 </button>
                             </div>
 
-                            {submissions.length === 0 ? (
-                                <div className="empty-state">
+                            {/* Pending Submissions */}
+                            <h3 className="section-title-small mb-4">בקשות ממתינות ({submissions.filter(s => s.status === 'pending').length})</h3>
+                            {submissions.filter(s => s.status === 'pending').length === 0 ? (
+                                <div className="empty-state mb-8">
                                     <div className="empty-state-icon">✅</div>
-                                    <h3>אין בקשות אירועים ממתינות</h3>
+                                    <h3>אין בקשות ממתינות לטיפול</h3>
                                 </div>
                             ) : (
-                                <div className="grid">
-                                    {submissions.map(sub => (
-                                        <div key={sub.id} className="card p-4">
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div>
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <h3 className="font-bold text-lg">{sub.title}</h3>
-                                                        <span className={`badge ${sub.status === 'pending' ? 'badge-warning' :
-                                                            sub.status === 'approved' ? 'badge-success' : 'badge-error'
-                                                            }`}>
-                                                            {sub.status === 'pending' ? 'ממתין' :
-                                                                sub.status === 'approved' ? 'אושר' :
-                                                                    sub.status === 'needs_changes' ? 'דורש תיקון' : 'נדחה'}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-secondary text-sm">
-                                                        מגיש: {(users.find(u => u.id === sub.submittedByUserId)?.displayName) || 'משתמש לא ידוע'} • {new Date(sub.createdAt).toLocaleDateString()}
-                                                    </p>
-                                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                                    {submissions.filter(s => s.status === 'pending').map(sub => (
+                                        <div key={sub.id} className="card p-4 flex flex-col h-full">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <span className="badge badge-warning">ממתין</span>
+                                                <span className="text-xs text-secondary">{new Date(sub.createdAt).toLocaleDateString()}</span>
                                             </div>
 
-                                            <div className="bg-tertiary p-3 rounded mb-4 text-sm">
-                                                {sub.coverUrl && (
-                                                    <div className="mb-3">
-                                                        <img src={sub.coverUrl} alt="Event Cover" className="w-full h-32 object-cover rounded" />
-                                                    </div>
-                                                )}
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <div><strong>סוג:</strong> {sub.type}</div>
-                                                    <div><strong>תאריך:</strong> {new Date(sub.startAt).toLocaleString()}</div>
-                                                    <div><strong>מיקום:</strong> {sub.locationText}</div>
-                                                    <div><strong>צפי:</strong> {sub.capacity || 'ללא הגבלה'}</div>
-                                                    <div><strong>מחיר:</strong> {sub.price ? `₪${sub.price}` : 'חינם'}</div>
-                                                    <div><strong>הרשמה:</strong> {sub.registrationEnabled ? 'כן' : 'לא'}</div>
-                                                </div>
-                                                {sub.paymentDetails && (
-                                                    <div className="mt-2 p-2 bg-base-200 rounded">
-                                                        <strong>פרטי תשלום:</strong> {sub.paymentDetails}
-                                                    </div>
-                                                )}
-                                                <div className="mt-2 text-secondary whitespace-pre-wrap">
-                                                    {sub.description}
-                                                </div>
-                                            </div>
+                                            <h3 className="font-bold text-lg mb-1">{sub.title}</h3>
+                                            <p className="text-sm text-secondary mb-3">
+                                                מאת: {(users.find(u => u.id === sub.submittedByUserId)?.displayName) || 'משתמש לא ידוע'}
+                                            </p>
 
-                                            {sub.status === 'pending' && (
-                                                <div className="flex gap-2 justify-end">
-                                                    <button
-                                                        className="btn btn-error btn-sm"
-                                                        onClick={() => openSubmissionRejectModal(sub.id)}
-                                                    >
-                                                        <X size={16} /> דחה
-                                                    </button>
-                                                    <button
-                                                        className="btn btn-secondary btn-sm"
-                                                        onClick={() => openSubmissionChangesModal(sub.id)}
-                                                    >
-                                                        <MessageSquare size={16} /> בקש תיקון
-                                                    </button>
-                                                    <button
-                                                        className="btn btn-success btn-sm"
-                                                        onClick={() => handleApproveSubmission(sub)}
-                                                    >
-                                                        <Check size={16} /> אשר וצור אירוע
-                                                    </button>
+                                            {sub.coverUrl && (
+                                                <div className="mb-3 h-32 w-full">
+                                                    <img src={sub.coverUrl} alt="" className="w-full h-full object-cover rounded" />
                                                 </div>
                                             )}
+
+                                            <div className="text-sm space-y-1 mb-4 flex-grow">
+                                                <div><strong>תאריך:</strong> {new Date(sub.startAt).toLocaleString()}</div>
+                                                <div><strong>מיקום:</strong> {sub.locationText}</div>
+                                                <div><strong>סוג:</strong> {sub.type}</div>
+                                                <div className="line-clamp-2 text-secondary mt-2">{sub.description}</div>
+                                            </div>
+
+                                            <div className="flex gap-2 mt-auto pt-4 border-t border-border">
+                                                <button
+                                                    className="btn btn-error btn-sm flex-1"
+                                                    onClick={() => openSubmissionRejectModal(sub.id)}
+                                                >
+                                                    <X size={16} /> דחה
+                                                </button>
+                                                <button
+                                                    className="btn btn-secondary btn-sm flex-1"
+                                                    onClick={() => openSubmissionChangesModal(sub.id)}
+                                                >
+                                                    <MessageSquare size={16} /> תיקון
+                                                </button>
+                                                <button
+                                                    className="btn btn-success btn-sm flex-1"
+                                                    onClick={() => handleApproveSubmission(sub)}
+                                                >
+                                                    <Check size={16} /> אשר
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
                             )}
+
+                            {/* Submission History Table */}
+                            <h3 className="section-title-small mb-4 pt-4 border-t border-border">היסטוריית בקשות</h3>
+                            <div className="table-container">
+                                <table className="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>סטטוס</th>
+                                            <th>אירוע</th>
+                                            <th>מגיש</th>
+                                            <th>תאריך הגשה</th>
+                                            <th>פעולות</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {submissions.filter(s => s.status !== 'pending').map(sub => (
+                                            <tr key={sub.id}>
+                                                <td>
+                                                    <span className={`badge ${sub.status === 'approved' ? 'badge-success' :
+                                                            sub.status === 'needs_changes' ? 'badge-warning' : 'badge-error'
+                                                        }`}>
+                                                        {sub.status === 'approved' ? 'אושר' :
+                                                            sub.status === 'needs_changes' ? 'נשלח לתיקון' : 'נדחה'}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div className="font-bold">{sub.title}</div>
+                                                    <div className="text-xs text-secondary">{new Date(sub.startAt).toLocaleDateString()}</div>
+                                                </td>
+                                                <td>{(users.find(u => u.id === sub.submittedByUserId)?.displayName) || 'לא ידוע'}</td>
+                                                <td>{new Date(sub.createdAt).toLocaleDateString()}</td>
+                                                <td>
+                                                    <button
+                                                        className="btn btn-icon-sm btn-ghost text-error"
+                                                        onClick={() => {
+                                                            openConfirmDialog(
+                                                                'מחיקת בקשה',
+                                                                'האם אתה בטוח שברצונך למחוק את הבקשה מההיסטוריה? פעולה זו לא תמחק את האירוע עצמו אם נוצר.',
+                                                                async () => {
+                                                                    try {
+                                                                        await repository.deleteEventSubmission(sub.id);
+                                                                        showToast('הבקשה נמחקה מההיסטוריה', 'success');
+                                                                        loadData('submissions');
+                                                                    } catch (e) {
+                                                                        showToast('שגיאה במחיקת הבקשה', 'error');
+                                                                    }
+                                                                }
+                                                            );
+                                                        }}
+                                                        title="מחק מההיסטוריה"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {submissions.filter(s => s.status !== 'pending').length === 0 && (
+                                            <tr>
+                                                <td colSpan={5} className="text-center p-4 text-secondary">אין היסטוריה להצגה</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     )}
 
