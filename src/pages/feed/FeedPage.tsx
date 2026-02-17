@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useSearchParams } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, Image, Send, Pin, X } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Image, Send, Pin, X, Trash2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { repository } from '../../repositories';
@@ -27,6 +27,8 @@ export function FeedPage() {
     const [activePostId, setActivePostId] = useState<string | null>(null);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
     const [searchParams] = useSearchParams();
     const deepLinkPostId = searchParams.get('postId');
@@ -129,6 +131,17 @@ export function FeedPage() {
             }
         } catch (error) {
             showToast('שגיאה בעדכון לייק', 'error');
+        }
+    };
+
+    const handleDeletePost = async (postId: string) => {
+        try {
+            await repository.deletePost(postId);
+            setPosts(posts.filter(p => p.id !== postId));
+            setDeleteConfirmId(null);
+            showToast('הפוסט נמחק בהצלחה', 'success');
+        } catch (error) {
+            showToast('שגיאה במחיקת הפוסט', 'error');
         }
     };
 
@@ -258,6 +271,15 @@ export function FeedPage() {
                                     </div>
                                     <span className="post-time">{formatTimeAgo(post.createdAt)}</span>
                                 </div>
+                                {user && post.authorId === user.id && (
+                                    <button
+                                        className="post-delete-btn"
+                                        onClick={() => setDeleteConfirmId(post.id)}
+                                        title="מחק פוסט"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                )}
                             </div>
 
                             <p className="post-content">{post.content}</p>
@@ -363,6 +385,34 @@ export function FeedPage() {
                             >
                                 <Send size={16} />
                                 פרסם
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Dialog */}
+            {deleteConfirmId && (
+                <div className="delete-confirm-overlay" onClick={() => setDeleteConfirmId(null)}>
+                    <div className="delete-confirm-dialog" onClick={e => e.stopPropagation()}>
+                        <div className="delete-confirm-icon">
+                            <Trash2 size={28} />
+                        </div>
+                        <h3 className="delete-confirm-title">מחיקת פוסט</h3>
+                        <p className="delete-confirm-text">האם אתה בטוח שברצונך למחוק את הפוסט? פעולה זו לא ניתנת לביטול.</p>
+                        <div className="delete-confirm-actions">
+                            <button
+                                className="delete-confirm-cancel"
+                                onClick={() => setDeleteConfirmId(null)}
+                            >
+                                ביטול
+                            </button>
+                            <button
+                                className="delete-confirm-delete"
+                                onClick={() => handleDeletePost(deleteConfirmId)}
+                            >
+                                <Trash2 size={14} />
+                                מחק
                             </button>
                         </div>
                     </div>

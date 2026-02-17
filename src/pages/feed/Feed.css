@@ -578,3 +578,128 @@
 .create-post-quick-btn:active {
     transform: scale(0.97);
 }
+
+/* ============ POST DELETE BUTTON ============ */
+.post-delete-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    transition: color var(--transition-fast), background var(--transition-fast);
+    flex-shrink: 0;
+    margin-right: auto;
+    margin-left: 0;
+}
+
+.post-delete-btn:hover {
+    background: var(--color-error-bg);
+    color: var(--color-error);
+}
+
+/* ============ DELETE CONFIRMATION DIALOG ============ */
+.delete-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    z-index: var(--z-modal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fade-in 0.2s ease;
+}
+
+.delete-confirm-dialog {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    max-width: 360px;
+    width: 90%;
+    text-align: center;
+    animation: sheet-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.delete-confirm-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-full);
+    background: var(--color-error-bg);
+    color: var(--color-error);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--spacing-md);
+}
+
+.delete-confirm-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 0 0 var(--spacing-sm);
+}
+
+.delete-confirm-text {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    margin: 0 0 var(--spacing-lg);
+}
+
+.delete-confirm-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.delete-confirm-cancel {
+    flex: 1;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    font-family: var(--font-family);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    min-height: 44px;
+}
+
+.delete-confirm-cancel:hover {
+    border-color: var(--color-border-hover);
+    color: var(--color-text-primary);
+}
+
+.delete-confirm-delete {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-error);
+    border: none;
+    border-radius: var(--radius-lg);
+    color: white;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    font-family: var(--font-family);
+    cursor: pointer;
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+    min-height: 44px;
+}
+
+.delete-confirm-delete:hover {
+    opacity: 0.9;
+}
+
+.delete-confirm-delete:active {
+    transform: scale(0.97);
+}
