@@ -126,6 +126,7 @@ export interface User {
     radiusKm: number;
     genres: string[];  // Genre IDs
     instruments: UserInstrument[];
+    isOnboarded: boolean;
     isVocalist: boolean;
     isSongwriter: boolean;
     samples: MediaFile[];

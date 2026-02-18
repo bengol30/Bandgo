@@ -1,9 +1,4 @@
-// ============================================
-// bandgo - Onboarding Page
-// Multi-step Wizard: Intro -> Account -> Profile -> Complete
-// ============================================
-
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Sparkles,
@@ -16,12 +11,15 @@ import {
     Music,
     MapPin,
     ArrowRight,
-    ArrowLeft
+    ArrowLeft,
+    Camera,
+    Upload
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { UserRole } from '../../types';
 import { INSTRUMENTS, GENRES } from '../../data/constants';
+import { repository } from '../../repositories/FirebaseRepository';
 import './Onboarding.css';
 
 const timelineSteps = [
@@ -60,44 +58,84 @@ export function OnboardingPage() {
         displayName: '',
         email: '',
         password: '',
-        mainInstrument: '',
+        selectedInstruments: [] as string[],
         genres: [] as string[],
         bio: '',
         city: ''
     });
 
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     const handleNext = () => setStep(prev => prev + 1);
     const handleBack = () => setStep(prev => prev - 1);
 
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setSelectedFile(file);
+            setPreviewUrl(URL.createObjectURL(file));
+        }
+    };
+
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (formData.selectedInstruments.length === 0) {
+            showToast('יש לבחור לפחות כלי נגינה אחד', 'error');
+            return;
+        }
+
         setLoading(true);
 
         try {
+            let finalAvatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.email}`;
+
+            if (selectedFile) {
+                // Upload logic with timeout/fallback
+                try {
+                    showToast('מעלה תמונה...', 'info');
+                    // Create a promise that rejects after 10s to prevent hanging
+                    const uploadPromise = repository.uploadFile(selectedFile, `profile-images/${Date.now()}_${selectedFile.name}`);
+                    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Upload timeout')), 10000));
+
+                    finalAvatarUrl = await Promise.race([uploadPromise, timeoutPromise]) as string;
+                } catch (uploadError) {
+                    console.error('Failed to upload image (CORS or other):', uploadError);
+                    showToast('לא ניתן להעלות תמונה כרגע (CORS), ממשיכים בהרשמה...', 'warning');
+                    // Just continue with default avatar
+                }
+            }
+
+            showToast('יוצר משתמש...', 'info');
             await register({
                 displayName: formData.displayName,
                 email: formData.email,
-                photoURL: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.email}`,
+                avatarUrl: finalAvatarUrl,
                 role: UserRole.USER,
                 bio: formData.bio,
-                location: formData.city,
+                city: formData.city,
                 radiusKm: 30, // Default radius
                 isVocalist: false, // Default
                 isSongwriter: false, // Default
                 samples: [],
-                mainInstrument: formData.mainInstrument, // Keeping for backward compatibility if needed, but better to rely on instruments array
                 genres: formData.genres,
                 isOnboarded: true,
                 createdAt: new Date(),
-                lastLoginAt: new Date(),
                 updatedAt: new Date(),
-                instruments: [{ instrumentId: formData.mainInstrument }]
+                instruments: formData.selectedInstruments.map(id => ({ instrumentId: id }))
             });
             showToast('ההרשמה בוצעה בהצלחה! ברוכים הבאים 🎉', 'success');
             navigate('/');
         } catch (error: any) {
             console.error('Registration failed:', error);
-            showToast(error.message || 'שגיאה בהרשמה', 'error');
+            const msg = error.message || 'שגיאה בהרשמה';
+            if (msg.includes('כבר רשום')) {
+                showToast(msg + ' לחץ על "כבר יש לי חשבון" למטה.', 'error');
+            } else {
+                showToast(msg, 'error');
+            }
         } finally {
             setLoading(false);
         }
@@ -113,6 +151,15 @@ export function OnboardingPage() {
                 return prev;
             }
             return { ...prev, genres: [...prev.genres, genreId] };
+        });
+    };
+
+    const toggleInstrument = (instrumentId: string) => {
+        setFormData(prev => {
+            if (prev.selectedInstruments.includes(instrumentId)) {
+                return { ...prev, selectedInstruments: prev.selectedInstruments.filter(i => i !== instrumentId) };
+            }
+            return { ...prev, selectedInstruments: [...prev.selectedInstruments, instrumentId] };
         });
     };
 
@@ -163,6 +210,32 @@ export function OnboardingPage() {
             <div className="step-header">
                 <h2>יצירת חשבון</h2>
                 <p>כמה פרטים בסיסיים ומתחילים</p>
+            </div>
+
+            <div className="form-group text-center mb-6">
+                <div
+                    className="relative w-24 h-24 mx-auto cursor-pointer group"
+                    onClick={() => fileInputRef.current?.click()}
+                >
+                    <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-dashed border-gray-300 group-hover:border-primary transition-colors flex items-center justify-center bg-gray-50">
+                        {previewUrl ? (
+                            <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                        ) : (
+                            <Camera className="text-gray-400 w-8 h-8" />
+                        )}
+                    </div>
+                    <div className="absolute bottom-0 right-0 bg-primary text-white p-1.5 rounded-full shadow-lg">
+                        <Upload size={14} />
+                    </div>
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                    />
+                </div>
+                <p className="text-sm text-gray-500 mt-2">הוסיפו תמונת פרופיל</p>
             </div>
 
             <div className="form-group">
@@ -217,18 +290,21 @@ export function OnboardingPage() {
             </div>
 
             <div className="form-group">
-                <label className="form-label"><Music size={16} /> כלי נגינה ראשי</label>
-                <select
-                    className="form-select"
-                    required
-                    value={formData.mainInstrument}
-                    onChange={e => setFormData({ ...formData, mainInstrument: e.target.value })}
-                >
-                    <option value="">בחר כלי נגינה...</option>
+                <label className="form-label"><Music size={16} /> במה אתם מנגנים?</label>
+                <div className="genres-grid">
                     {INSTRUMENTS.map(inst => (
-                        <option key={inst.id} value={inst.id}>{inst.nameHe}</option>
+                        <button
+                            key={inst.id}
+                            type="button"
+                            className={`genre-tag ${formData.selectedInstruments.includes(inst.id) ? 'active' : ''}`}
+                            onClick={() => toggleInstrument(inst.id)}
+                        >
+                            <span className="mr-1">{inst.icon || '🎵'}</span>
+                            {inst.nameHe}
+                        </button>
                     ))}
-                </select>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">ניתן לבחור מספר כלים</p>
             </div>
 
             <div className="form-group">

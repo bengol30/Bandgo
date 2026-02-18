@@ -508,26 +508,25 @@ export function BandRequestDetailsPage() {
                             <button
                                 className={`hero-action-btn ${isEditing ? 'active' : ''}`}
                                 onClick={() => isEditing ? handleSaveEdit() : setIsEditing(true)}
+                                title={isEditing ? 'שמור' : 'עריכה'}
                             >
-                                {isEditing ? <Save size={16} /> : <Edit2 size={16} />}
-                                <span>{isEditing ? 'שמור' : 'עריכה'}</span>
+                                {isEditing ? <Save size={18} /> : <Edit2 size={18} />}
                             </button>
                         )}
                         {isEditing && isCreator && (
                             <button
                                 className="hero-action-btn cancel"
                                 onClick={() => setIsEditing(false)}
+                                title="ביטול"
                             >
-                                <X size={16} />
-                                <span>ביטול</span>
+                                <X size={18} />
                             </button>
                         )}
-                        <button className="hero-action-btn" onClick={() => {
+                        <button className="hero-action-btn" title="שיתוף" onClick={() => {
                             navigator.clipboard.writeText(window.location.href);
                             showToast('הקישור הועתק ללוח!', 'success');
                         }}>
-                            <Share2 size={16} />
-                            <span>שיתוף</span>
+                            <Share2 size={18} />
                         </button>
                     </div>
 
@@ -898,80 +897,7 @@ export function BandRequestDetailsPage() {
                     )}
                 </section>
 
-                {/* About the project */}
-                <section className="details-section about-section">
-                    <h2>
-                        <Music size={18} />
-                        על הפרויקט
-                    </h2>
-                    {isEditing ? (
-                        <textarea
-                            className="form-textarea"
-                            value={editForm.description}
-                            onChange={e => setEditForm({ ...editForm, description: e.target.value })}
-                            rows={6}
-                        />
-                    ) : (
-                        <p className="description-text">{request.description}</p>
-                    )}
-
-                    {!isEditing && (
-                        <div className="genres-list">
-                            {request.genres.map(g => (
-                                <span key={g} className="genre-tag">
-                                    # {getGenreName(g)}
-                                </span>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Influences */}
-                    {request.influences && request.influences.length > 0 && (
-                        <div className="influences-section">
-                            <h3>השראות מוזיקליות</h3>
-                            <div className="influences-list">
-                                {request.influences.map((inf, i) => (
-                                    <span key={i} className="influence-tag">
-                                        <Music size={12} />
-                                        {inf}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Media / Sketches */}
-                    {(request.sketches?.length > 0 || request.sketchPending) && (
-                        <div className="media-section">
-                            <h3>סקיצות והקלטות</h3>
-                            {request.sketches?.length > 0 ? (
-                                <div className="media-grid">
-                                    {request.sketches.map(media => (
-                                        <div key={media.id} className="media-item">
-                                            <div className="media-icon-wrapper">
-                                                {media.type === 'audio' ? <Mic2 size={24} /> : <Play size={24} />}
-                                            </div>
-                                            <div className="media-info">
-                                                <h4>{media.name}</h4>
-                                                <a href={media.url} target="_blank" rel="noopener noreferrer" className="media-link">
-                                                    <ExternalLink size={14} />
-                                                    <span>נגן סקיצה</span>
-                                                </a>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="empty-media-state">
-                                    <AlertCircle size={20} />
-                                    <span>טרם הועלו סקיצות, אך ניתן לפנות ליוצר לקבלת חומרים.</span>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </section>
-
-                {/* Slots (Who we need) - Moved below About */}
+                {/* Slots (Who we need) */}
                 {request.type === BandRequestType.TARGETED && (
                     <section className="details-section">
                         <h2>מי דרוש לנו?</h2>
@@ -1052,6 +978,79 @@ export function BandRequestDetailsPage() {
                         </div>
                     </section>
                 )}
+
+                {/* About the project */}
+                <section className="details-section about-section">
+                    <h2>
+                        <Music size={18} />
+                        על הפרויקט
+                    </h2>
+                    {isEditing ? (
+                        <textarea
+                            className="form-textarea"
+                            value={editForm.description}
+                            onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                            rows={6}
+                        />
+                    ) : (
+                        <p className="description-text">{request.description}</p>
+                    )}
+
+                    {!isEditing && (
+                        <div className="genres-list">
+                            {request.genres.map(g => (
+                                <span key={g} className="genre-tag">
+                                    # {getGenreName(g)}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Influences */}
+                    {request.influences && request.influences.length > 0 && (
+                        <div className="influences-section">
+                            <h3>השראות מוזיקליות</h3>
+                            <div className="influences-list">
+                                {request.influences.map((inf, i) => (
+                                    <span key={i} className="influence-tag">
+                                        <Music size={12} />
+                                        {inf}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Media / Sketches */}
+                    {(request.sketches?.length > 0 || request.sketchPending) && (
+                        <div className="media-section">
+                            <h3>סקיצות והקלטות</h3>
+                            {request.sketches?.length > 0 ? (
+                                <div className="media-grid">
+                                    {request.sketches.map(media => (
+                                        <div key={media.id} className="media-item">
+                                            <div className="media-icon-wrapper">
+                                                {media.type === 'audio' ? <Mic2 size={24} /> : <Play size={24} />}
+                                            </div>
+                                            <div className="media-info">
+                                                <h4>{media.name}</h4>
+                                                <a href={media.url} target="_blank" rel="noopener noreferrer" className="media-link">
+                                                    <ExternalLink size={14} />
+                                                    <span>נגן סקיצה</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="empty-media-state">
+                                    <AlertCircle size={20} />
+                                    <span>טרם הועלו סקיצות, אך ניתן לפנות ליוצר לקבלת חומרים.</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </section>
 
                 {/* Repertoire Section */}
                 {(isEditing || (request.repertoire && request.repertoire.length > 0)) && (

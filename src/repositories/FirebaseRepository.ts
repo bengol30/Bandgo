@@ -225,14 +225,13 @@ export class FirebaseRepository implements IRepository {
         // Check if user already exists
         const q = query(collection(db, 'users'), where('email', '==', user.email));
         const sn = await getDocs(q);
-        if (!sn.empty) throw new Error('User already exists');
+        if (!sn.empty) throw new Error('האימייל הזה כבר רשום במערכת. נסה להתחבר במקום להירשם.');
 
         const newUserRef = doc(collection(db, 'users'));
         const newUser: User = {
             ...user,
             id: newUserRef.id,
             createdAt: new Date(),
-            lastLoginAt: new Date(),
             isOnboarded: false
         };
 
@@ -1430,6 +1429,8 @@ export class FirebaseRepository implements IRepository {
     async getOrCreateConversation(otherUserId: string): Promise<Conversation> { return {} as any; }
     async getDirectMessages(conversationId: string, limit?: number): Promise<DirectMessage[]> { return []; }
     async sendDirectMessage(conversationId: string, content: string, media?: MediaFile): Promise<DirectMessage> { return {} as any; }
+
+
     async markDirectMessagesAsRead(conversationId: string): Promise<void> { }
     async getUnreadDirectMessageCount(): Promise<number> { return 0; }
 
@@ -1450,3 +1451,5 @@ export class FirebaseRepository implements IRepository {
     }
     async deleteFile(url: string): Promise<void> { }
 }
+
+export const repository = new FirebaseRepository();
