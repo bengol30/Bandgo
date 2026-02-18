@@ -10,6 +10,7 @@ interface AuthContextType {
     user: User | null;
     loading: boolean;
     signIn: (email: string, password: string) => Promise<void>;
+    register: (data: Omit<User, 'id'>) => Promise<void>;
     signInWithGoogle: () => Promise<void>;
     signOut: () => Promise<void>;
     updateProfile: (data: Partial<User>) => Promise<void>;
@@ -46,6 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(loggedInUser);
     };
 
+    const register = async (data: Omit<User, 'id'>) => {
+        const newUser = await repository.signUp(data);
+        setUser(newUser);
+    };
+
     const signInWithGoogle = async () => {
         const users = await repository.getAllUsers();
         const googleUser = users.find(u => u.email === 'user@gmail.com');
@@ -77,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             user,
             loading,
             signIn,
+            register,
             signInWithGoogle,
             signOut,
             updateProfile,

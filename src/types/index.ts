@@ -200,11 +200,22 @@ export interface BandRequest {
     existingRehearsalSpace?: boolean;
 
     // Enhanced Details
-    socialLinks?: { display: string; url: string }[];
-    repertoire?: { song: string; artist: string; note?: string }[];
+    socialLinks?: SocialLink[];
+    repertoire?: RepertoireItem[];
 
     createdAt: Date;
     updatedAt: Date;
+}
+
+export interface SocialLink {
+    display: string;
+    url: string;
+}
+
+export interface RepertoireItem {
+    song: string;
+    artist: string;
+    note?: string;
 }
 
 export interface BandApplication {

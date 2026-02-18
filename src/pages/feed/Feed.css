@@ -144,6 +144,17 @@
     background: var(--color-error-bg);
 }
 
+.post-action-btn.delete-btn {
+    margin-right: auto;
+    /* Push to the left (in RTL) or right (in LTR) depending on flex direction, but here it helps separation */
+    color: var(--color-text-muted);
+}
+
+.post-action-btn.delete-btn:hover {
+    color: var(--color-error);
+    background: var(--color-error-bg);
+}
+
 /* ============ CREATE POST CARD ============ */
 .create-post-card {
     background: var(--color-bg-card);
@@ -311,6 +322,7 @@
         transform: translateY(100%);
         opacity: 0;
     }
+
     to {
         transform: translateY(0);
         opacity: 1;

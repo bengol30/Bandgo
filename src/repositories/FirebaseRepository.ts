@@ -221,6 +221,27 @@ export class FirebaseRepository implements IRepository {
         return user;
     }
 
+    async signUp(user: Omit<User, 'id'>, _password?: string): Promise<User> {
+        // Check if user already exists
+        const q = query(collection(db, 'users'), where('email', '==', user.email));
+        const sn = await getDocs(q);
+        if (!sn.empty) throw new Error('User already exists');
+
+        const newUserRef = doc(collection(db, 'users'));
+        const newUser: User = {
+            ...user,
+            id: newUserRef.id,
+            createdAt: new Date(),
+            lastLoginAt: new Date(),
+            isOnboarded: false
+        };
+
+        await setDoc(newUserRef, newUser);
+        this.currentUserId = newUser.id;
+        localStorage.setItem('bandgo_auth_user_id', newUser.id);
+        return newUser;
+    }
+
     async signOut(): Promise<void> {
         this.currentUserId = '';
         localStorage.removeItem('bandgo_auth_user_id');
@@ -343,6 +364,25 @@ export class FirebaseRepository implements IRepository {
         const id = uuidv4();
         const app: BandApplication = { ...data, id, createdAt: new Date() };
         await setDoc(doc(db, 'applications', id), app);
+
+        // Notify Creator
+        try {
+            const request = await this.getBandRequest(data.bandRequestId);
+            if (request) {
+                const applicant = await this.getUser(data.applicantId);
+                await this.createNotification({
+                    userId: request.creatorId,
+                    type: 'new_application',
+                    title: 'בקשת הצטרפות חדשה',
+                    body: `${applicant?.displayName || 'משתמש'} מעוניין/ת להצטרף להרכב "${request.title || 'שלך'}"`,
+                    relatedEntityType: 'band_request',
+                    relatedEntityId: request.id
+                });
+            }
+        } catch (error) {
+            console.error('Failed to send notification for new application:', error);
+        }
+
         return app;
     }
 
@@ -390,7 +430,31 @@ export class FirebaseRepository implements IRepository {
 
         // Return updated application
         const updatedSnap = await getDoc(ref);
-        return convertDates(updatedSnap.data()) as BandApplication;
+        const updatedApp = convertDates(updatedSnap.data()) as BandApplication;
+
+        // Notify Applicant
+        try {
+            const request = await this.getBandRequest(updatedApp.bandRequestId);
+            if (request) {
+                const title = status === 'approved' ? 'התקבלת להרכב! 🎉' : 'עדכון לגבי בקשתך';
+                const body = status === 'approved'
+                    ? `בקשתך להצטרף להרכב "${request.title || 'ההרכב'}" אושרה! כעת ניתן להיכנס לאזור הלהקה.`
+                    : `בקשתך להצטרף להרכב "${request.title || 'ההרכב'}" נדחתה.`;
+
+                await this.createNotification({
+                    userId: updatedApp.applicantId,
+                    type: status === 'approved' ? 'application_approved' : 'application_rejected',
+                    title,
+                    body,
+                    relatedEntityType: 'band_request',
+                    relatedEntityId: request.id
+                });
+            }
+        } catch (error) {
+            console.error('Failed to send notification for application review:', error);
+        }
+
+        return updatedApp;
     }
 
     // ============ BANDS ============
@@ -1269,10 +1333,44 @@ export class FirebaseRepository implements IRepository {
     }
 
     // ============ NOTIFICATIONS ============
-    async getNotifications(userId: string): Promise<Notification[]> { return []; }
-    async markNotificationRead(id: string): Promise<void> { }
-    async markAllNotificationsRead(userId: string): Promise<void> { }
-    async createNotification(data: Omit<Notification, 'id' | 'createdAt' | 'read'>): Promise<Notification> { return {} as any; }
+    async getNotifications(userId: string): Promise<Notification[]> {
+        const q = query(
+            collection(db, 'notifications'),
+            where('userId', '==', userId),
+            orderBy('createdAt', 'desc'),
+            limit(50)
+        );
+        const sn = await getDocs(q);
+        return sn.docs.map(d => convertDates(d.data()) as Notification);
+    }
+
+    async markNotificationRead(id: string): Promise<void> {
+        await updateDoc(doc(db, 'notifications', id), { read: true });
+    }
+
+    async markAllNotificationsRead(userId: string): Promise<void> {
+        const q = query(collection(db, 'notifications'), where('userId', '==', userId), where('read', '==', false));
+        const sn = await getDocs(q);
+        const batch = writeBatch(db);
+        sn.docs.forEach(d => batch.update(d.ref, { read: true }));
+        await batch.commit();
+    }
+
+    async createNotification(data: Omit<Notification, 'id' | 'createdAt' | 'read'>): Promise<Notification> {
+        const id = uuidv4();
+        const notification: Notification = {
+            id,
+            ...data,
+            read: false,
+            createdAt: new Date()
+        };
+
+        // Sanitize to remove undefined
+        const sanitized = sanitizeData(notification);
+
+        await setDoc(doc(db, 'notifications', id), sanitized);
+        return notification;
+    }
 
     // ============ BAND CHAT ============
     // ============ BAND CHAT ============

@@ -8,6 +8,300 @@
     display: flex;
     flex-direction: column;
     padding: var(--spacing-lg);
+    align-items: center;
+    justify-content: center;
+}
+
+.onboarding-container {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Progress Indicators */
+.onboarding-progress {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--spacing-xl);
+    width: 100%;
+    padding: 0 var(--spacing-xl);
+}
+
+.progress-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--color-border);
+    transition: all 0.3s ease;
+}
+
+.progress-dot.active {
+    background: var(--color-accent-primary);
+    box-shadow: 0 0 10px var(--color-accent-glow);
+    transform: scale(1.2);
+}
+
+.progress-line {
+    flex: 1;
+    height: 2px;
+    background: var(--color-border);
+    margin: 0 var(--spacing-sm);
+    transition: all 0.3s ease;
+}
+
+.progress-line.active {
+    background: var(--color-accent-primary);
+}
+
+/* Animations */
+.fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Header & Intro */
+.onboarding-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.onboarding-logo {
+    font-size: 4rem;
+    margin-bottom: var(--spacing-md);
+    display: block;
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.onboarding-title {
+    font-size: var(--font-size-3xl);
+    font-weight: 800;
+    margin-bottom: var(--spacing-sm);
+    background: var(--color-accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.onboarding-subtitle {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-lg);
+}
+
+.onboarding-tagline {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    background: var(--color-accent-glow);
+    border: 1px solid var(--color-border-accent);
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--radius-full);
+    color: var(--color-accent-primary);
+    font-weight: 500;
+    margin-top: var(--spacing-lg);
+    font-size: var(--font-size-sm);
+}
+
+/* Timeline (Intro Step) */
+.onboarding-timeline {
+    margin-bottom: var(--spacing-xl);
+}
+
+.timeline-item {
+    display: flex;
+    gap: var(--spacing-md);
+    padding-bottom: var(--spacing-lg);
+    position: relative;
+}
+
+.timeline-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 24px;
+    top: 50px;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--color-accent-primary-transparent), var(--color-border));
+}
+
+.timeline-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-full);
+    background: var(--color-bg-card);
+    border: 2px solid var(--color-accent-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+    z-index: 1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.timeline-content {
+    padding-top: var(--spacing-xs);
+}
+
+.timeline-title {
+    font-size: var(--font-size-md);
+    font-weight: 700;
+    margin-bottom: 2px;
+    color: var(--color-text-primary);
+}
+
+.timeline-text {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    line-height: 1.4;
+}
+
+/* Forms */
+.onboarding-step-content {
+    background: var(--color-bg-card);
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+}
+
+.step-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.step-header h2 {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    margin-bottom: var(--spacing-xs);
+}
+
+.step-header p {
+    color: var(--color-text-secondary);
+}
+
+.form-group {
+    margin-bottom: var(--spacing-lg);
+}
+
+.form-label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-weight: 500;
+    margin-bottom: var(--spacing-xs);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+    width: 100%;
+    padding: var(--spacing-md);
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-md);
+    transition: all 0.2s;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+    border-color: var(--color-accent-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--color-accent-glow);
+}
+
+/* Genres Grid */
+.genres-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+}
+
+.genre-tag {
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--color-text-secondary);
+}
+
+.genre-tag:hover {
+    border-color: var(--color-accent-primary);
+    color: var(--color-text-primary);
+}
+
+.genre-tag.active {
+    background: var(--color-accent-primary);
+    border-color: var(--color-accent-primary);
+    color: white;
+}
+
+/* Actions */
+.step-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: var(--spacing-xl);
+    gap: var(--spacing-md);
+}
+
+.step-actions .btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.btn-ghost {
+    background: transparent;
+    color: var(--color-text-secondary);
+}
+
+.btn-ghost:hover {
+    color: var(--color-text-primary);
+    background: var(--color-bg-hover);
+}
+
+/* Intro CTA */
+.onboarding-cta button {
+    box-shadow: 0 4px 15px var(--color-accent-glow);
+    transition: transform 0.2s;
+}
+
+.onboarding-cta button:hover {
+    transform: translateY(-2px);
 }
 
 .onboarding-content {

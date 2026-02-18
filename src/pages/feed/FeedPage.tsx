@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useSearchParams } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, Image, Send, Pin, X } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Image, Send, Pin, X, Trash2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { repository } from '../../repositories';
@@ -129,6 +129,17 @@ export function FeedPage() {
             }
         } catch (error) {
             showToast('שגיאה בעדכון לייק', 'error');
+        }
+    };
+
+    const handleDeletePost = async (postId: string) => {
+        try {
+            await repository.deletePost(postId);
+            setPosts(posts.filter(p => p.id !== postId));
+            showToast('הפוסט נמחק בהצלחה', 'success');
+        } catch (error) {
+            console.error('Failed to delete post:', error);
+            showToast('שגיאה במחיקת הפוסט', 'error');
         }
     };
 
@@ -290,6 +301,20 @@ export function FeedPage() {
                                 <button className="post-action-btn">
                                     <Share2 size={18} />
                                 </button>
+
+                                {user && post.authorId === user.id && (
+                                    <button
+                                        className="post-action-btn delete-btn"
+                                        onClick={() => {
+                                            if (window.confirm('האם אתה בטוח שברצונך למחוק את הפוסט הזה?')) {
+                                                handleDeletePost(post.id);
+                                            }
+                                        }}
+                                        title="מחק פוסט"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                )}
                             </div>
                         </article>
                     ))
@@ -297,77 +322,79 @@ export function FeedPage() {
             </div>
 
             {/* Create Post Modal — bottom sheet */}
-            {showCreateModal && (
-                <div className="create-post-sheet-overlay" onClick={() => setShowCreateModal(false)}>
-                    <div className="create-post-sheet" onClick={e => e.stopPropagation()}>
-                        {/* Drag handle */}
-                        <div className="sheet-drag-handle" />
+            {
+                showCreateModal && (
+                    <div className="create-post-sheet-overlay" onClick={() => setShowCreateModal(false)}>
+                        <div className="create-post-sheet" onClick={e => e.stopPropagation()}>
+                            {/* Drag handle */}
+                            <div className="sheet-drag-handle" />
 
-                        {/* Header row */}
-                        <div className="sheet-header">
-                            <div className="sheet-header-user">
-                                {user?.avatarUrl ? (
-                                    <img src={user.avatarUrl} alt={user?.displayName} className="sheet-avatar" />
-                                ) : (
-                                    <div className="sheet-avatar sheet-avatar-placeholder">{user?.displayName?.charAt(0)}</div>
-                                )}
-                                <div className="sheet-user-info">
-                                    <span className="sheet-user-name">{user?.displayName}</span>
-                                    <span className="sheet-audience">כולם</span>
+                            {/* Header row */}
+                            <div className="sheet-header">
+                                <div className="sheet-header-user">
+                                    {user?.avatarUrl ? (
+                                        <img src={user.avatarUrl} alt={user?.displayName} className="sheet-avatar" />
+                                    ) : (
+                                        <div className="sheet-avatar sheet-avatar-placeholder">{user?.displayName?.charAt(0)}</div>
+                                    )}
+                                    <div className="sheet-user-info">
+                                        <span className="sheet-user-name">{user?.displayName}</span>
+                                        <span className="sheet-audience">כולם</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <button className="sheet-close-btn" onClick={() => setShowCreateModal(false)}>
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        {/* Textarea */}
-                        <textarea
-                            className="sheet-textarea"
-                            placeholder={`מה חדש, ${user?.displayName?.split(' ')[0]}?`}
-                            value={newPostContent}
-                            onChange={e => setNewPostContent(e.target.value)}
-                            autoFocus
-                        />
-
-                        {/* Image preview */}
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleImageSelect}
-                            style={{ display: 'none' }}
-                            accept="image/*"
-                        />
-                        {selectedImage && (
-                            <div className="sheet-image-preview">
-                                <img src={selectedImage} alt="Preview" />
-                                <button className="post-image-remove-btn" onClick={handleRemoveImage}>
-                                    <X size={14} />
+                                <button className="sheet-close-btn" onClick={() => setShowCreateModal(false)}>
+                                    <X size={20} />
                                 </button>
                             </div>
-                        )}
 
-                        {/* Action bar */}
-                        <div className="sheet-action-bar">
-                            <button
-                                className="sheet-media-btn"
-                                onClick={() => fileInputRef.current?.click()}
-                            >
-                                <Image size={20} />
-                                <span>תמונה</span>
-                            </button>
-                            <button
-                                className="sheet-publish-btn"
-                                onClick={handleCreatePost}
-                                disabled={!newPostContent.trim() && !selectedImage}
-                            >
-                                <Send size={16} />
-                                פרסם
-                            </button>
+                            {/* Textarea */}
+                            <textarea
+                                className="sheet-textarea"
+                                placeholder={`מה חדש, ${user?.displayName?.split(' ')[0]}?`}
+                                value={newPostContent}
+                                onChange={e => setNewPostContent(e.target.value)}
+                                autoFocus
+                            />
+
+                            {/* Image preview */}
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleImageSelect}
+                                style={{ display: 'none' }}
+                                accept="image/*"
+                            />
+                            {selectedImage && (
+                                <div className="sheet-image-preview">
+                                    <img src={selectedImage} alt="Preview" />
+                                    <button className="post-image-remove-btn" onClick={handleRemoveImage}>
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Action bar */}
+                            <div className="sheet-action-bar">
+                                <button
+                                    className="sheet-media-btn"
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    <Image size={20} />
+                                    <span>תמונה</span>
+                                </button>
+                                <button
+                                    className="sheet-publish-btn"
+                                    onClick={handleCreatePost}
+                                    disabled={!newPostContent.trim() && !selectedImage}
+                                >
+                                    <Send size={16} />
+                                    פרסם
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             <PostDetailsModal
                 postId={activePostId}
@@ -377,6 +404,6 @@ export function FeedPage() {
                     loadData(); // Refresh to update comments count
                 }}
             />
-        </div>
+        </div >
     );
 }
