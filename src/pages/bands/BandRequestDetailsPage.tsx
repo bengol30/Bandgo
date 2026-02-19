@@ -671,22 +671,7 @@ export function BandRequestDetailsPage() {
                     </div>
                 )}
 
-                {/* Creator Card - inline */}
-                <div className="creator-inline">
-                    <div className="creator-profile-inline" onClick={() => navigate(`/profile/${creator.id}`)}>
-                        <div className="creator-avatar-sm">
-                            {creator.avatarUrl ? (
-                                <img src={creator.avatarUrl} alt={creator.displayName} />
-                            ) : (
-                                <div className="avatar-placeholder-sm">{creator.displayName[0]}</div>
-                            )}
-                        </div>
-                        <div className="creator-info-inline">
-                            <span className="creator-name-inline">{creator.displayName}</span>
-                            <span className="creator-label-inline">יוצר ההרכב</span>
-                        </div>
-                    </div>
-                </div>
+
 
                 {/* Closed Banner */}
                 {isClosed && !isCreator && (
@@ -978,6 +963,8 @@ export function BandRequestDetailsPage() {
                         </div>
                     </section>
                 )}
+
+
 
                 {/* About the project */}
                 <section className="details-section about-section">
@@ -1274,31 +1261,33 @@ export function BandRequestDetailsPage() {
             </div>
 
             {/* Band Name Modal */}
-            {showBandNameModal && (
-                <div className="modal-overlay" onClick={() => !isCreatingBand && setShowBandNameModal(false)}>
-                    <div className="modal-content band-name-modal" onClick={e => e.stopPropagation()}>
-                        <h2>🎸 בחר שם ללהקה</h2>
-                        <p className="text-secondary text-sm">בחר שם ויצא לדרך!</p>
-                        <input
-                            type="text"
-                            className="form-input"
-                            placeholder="שם הלהקה..."
-                            value={bandName}
-                            onChange={e => setBandName(e.target.value)}
-                            autoFocus
-                            disabled={isCreatingBand}
-                        />
-                        <div className="modal-actions">
-                            <button className="btn btn-ghost" onClick={() => setShowBandNameModal(false)} disabled={isCreatingBand}>
-                                ביטול
-                            </button>
-                            <button className="btn btn-primary" onClick={handleConvertToBand} disabled={isCreatingBand}>
-                                {isCreatingBand ? 'יוצר...' : 'צור להקה! 🚀'}
-                            </button>
+            {
+                showBandNameModal && (
+                    <div className="modal-overlay" onClick={() => !isCreatingBand && setShowBandNameModal(false)}>
+                        <div className="modal-content band-name-modal" onClick={e => e.stopPropagation()}>
+                            <h2>🎸 בחר שם ללהקה</h2>
+                            <p className="text-secondary text-sm">בחר שם ויצא לדרך!</p>
+                            <input
+                                type="text"
+                                className="form-input"
+                                placeholder="שם הלהקה..."
+                                value={bandName}
+                                onChange={e => setBandName(e.target.value)}
+                                autoFocus
+                                disabled={isCreatingBand}
+                            />
+                            <div className="modal-actions">
+                                <button className="btn btn-ghost" onClick={() => setShowBandNameModal(false)} disabled={isCreatingBand}>
+                                    ביטול
+                                </button>
+                                <button className="btn btn-primary" onClick={handleConvertToBand} disabled={isCreatingBand}>
+                                    {isCreatingBand ? 'יוצר...' : 'צור להקה! 🚀'}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Cover Image Selection Modal */}
             <Modal
@@ -1336,6 +1325,6 @@ export function BandRequestDetailsPage() {
                     ))}
                 </div>
             </Modal>
-        </div>
+        </div >
     );
 }

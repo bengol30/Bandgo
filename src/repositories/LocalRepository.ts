@@ -616,6 +616,18 @@ export class LocalRepository implements IRepository {
             `🎸 להקה חדשה התגבשה: "${newBand.name}"!`
         );
 
+        // Notify all band members that the band is officially formed
+        newBand.members.forEach(member => {
+            this.createNotification({
+                userId: member.userId,
+                type: 'band_formed',
+                title: '🎸 הלהקה הוקמה רשמית!',
+                body: `"${newBand.name}" הוכרזה כלהקה רשמית. ברוכים הבאים!`,
+                relatedEntityType: 'band',
+                relatedEntityId: newBand.id,
+            });
+        });
+
         this.saveToStorage();
         return newBand;
     }
@@ -1682,6 +1694,20 @@ export class LocalRepository implements IRepository {
             createdAt: new Date(),
         };
         this.eventRegistrations.push(newReg);
+
+        // Notify event organizer (if different from registrant)
+        if (event.organizerId && event.organizerId !== userId) {
+            const registrant = this.users.find(u => u.id === userId);
+            this.createNotification({
+                userId: event.organizerId,
+                type: 'event_registration',
+                title: '🎟️ נרשם משתתף חדש לאירוע שלך',
+                body: `${registrant?.displayName || 'מישהו'} נרשם/ה לאירוע "${event.title}"`,
+                relatedEntityType: 'event',
+                relatedEntityId: eventId,
+            });
+        }
+
         this.saveToStorage();
         return newReg;
     }

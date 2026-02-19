@@ -7,14 +7,15 @@ import { useNavigate } from 'react-router-dom';
 import {
     ArrowLeft,
     Check,
-    Trash2,
     Bell,
     CheckCheck,
     Music,
     Users,
     MessageSquare,
     Calendar,
-    Star
+    Heart,
+    PartyPopper,
+    Ticket,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -99,6 +100,14 @@ export function NotificationsPage() {
                 break;
 
             case 'new_song':
+            case 'new_sketch':
+                if (notification.relatedEntityType === 'band' && notification.relatedEntityId) {
+                    navigate(`/bands/${notification.relatedEntityId}`);
+                }
+                break;
+
+            case 'band_formed':
+            case 'chat_message':
                 if (notification.relatedEntityType === 'band' && notification.relatedEntityId) {
                     navigate(`/bands/${notification.relatedEntityId}`);
                 }
@@ -107,6 +116,8 @@ export function NotificationsPage() {
             case 'application_approved':
                 if (notification.relatedEntityType === 'band' && notification.relatedEntityId) {
                     navigate(`/bands/${notification.relatedEntityId}`);
+                } else if (notification.relatedEntityType === 'band_request' && notification.relatedEntityId) {
+                    navigate(`/requests/${notification.relatedEntityId}`);
                 }
                 break;
 
@@ -118,12 +129,9 @@ export function NotificationsPage() {
                 } else if (notification.relatedEntityType === 'band_request' && notification.relatedEntityId) {
                     navigate(`/requests/${notification.relatedEntityId}`);
                 } else if (notification.relatedEntityType === 'application' && notification.relatedEntityId) {
-                    // Fallback for older notifications or specific cases
                     try {
-                        // We need to find where this application belongs
-                        const applications = await repository.getAllApplications(); // We might need a getApplicationById method
+                        const applications = await repository.getAllApplications();
                         const app = applications.find(a => a.id === notification.relatedEntityId);
-
                         if (app) {
                             const bands = await repository.getBands();
                             const band = bands.find(b => b.originalBandRequestId === app.bandRequestId);
@@ -131,7 +139,6 @@ export function NotificationsPage() {
                                 navigate(`/bands/${band.id}`);
                                 return;
                             }
-                            // If no band, go to request details
                             navigate(`/requests/${app.bandRequestId}`);
                             return;
                         }
@@ -144,18 +151,34 @@ export function NotificationsPage() {
                 }
                 break;
 
+            case 'event_registration':
+            case 'event_approved':
+            case 'event_invite':
+                if (notification.relatedEntityType === 'event' && notification.relatedEntityId) {
+                    navigate(`/events/${notification.relatedEntityId}`);
+                } else {
+                    navigate('/events');
+                }
+                break;
+
+            case 'event_rejected':
+            case 'event_needs_changes':
+                navigate('/events');
+                break;
+
             case 'direct_message':
-                // Assuming we have a chat route, if not, maybe just /messages
-                // For now, let's assume /messages or similar. If relatedEntityId is conversationId
                 navigate(`/messages/${notification.relatedEntityId}`);
                 break;
 
             default:
-                // Fallback to existing logic if any
                 if (notification.relatedEntityType === 'band' && notification.relatedEntityId) {
                     navigate(`/bands/${notification.relatedEntityId}`);
                 } else if (notification.relatedEntityType === 'event' && notification.relatedEntityId) {
                     navigate(`/events/${notification.relatedEntityId}`);
+                } else if (notification.relatedEntityType === 'band_request' && notification.relatedEntityId) {
+                    navigate(`/requests/${notification.relatedEntityId}`);
+                } else if (notification.relatedEntityType === 'post' && notification.relatedEntityId) {
+                    navigate(`/?postId=${notification.relatedEntityId}`);
                 }
                 break;
         }
@@ -165,15 +188,30 @@ export function NotificationsPage() {
         switch (type) {
             case 'application_received':
             case 'application_approved':
+            case 'application_rejected':
+            case 'band_request':
                 return <Users size={20} />;
+            case 'band_formed':
+                return <PartyPopper size={20} />;
+            case 'new_song':
             case 'new_sketch':
                 return <Music size={20} />;
+            case 'chat_message':
             case 'new_message':
+            case 'direct_message':
+            case 'comment':
                 return <MessageSquare size={20} />;
+            case 'poll_created':
+            case 'rehearsal_scheduled':
             case 'event_invite':
+            case 'event_approved':
+            case 'event_rejected':
+            case 'event_needs_changes':
                 return <Calendar size={20} />;
+            case 'event_registration':
+                return <Ticket size={20} />;
             case 'like':
-                return <Star size={20} />;
+                return <Heart size={20} />;
             default:
                 return <Bell size={20} />;
         }

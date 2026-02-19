@@ -534,6 +534,23 @@ export class FirebaseRepository implements IRepository {
 
         await batch.commit();
 
+        // Notify all members that the band was officially formed
+        try {
+            const allMemberIds = members.map(m => m.userId);
+            await Promise.all(allMemberIds.map(memberId =>
+                this.createNotification({
+                    userId: memberId,
+                    type: 'band_formed',
+                    title: '🎸 הלהקה הוקמה רשמית!',
+                    body: `"${newBand.name}" הוכרזה כלהקה רשמית. ברוכים הבאים!`,
+                    relatedEntityType: 'band',
+                    relatedEntityId: newBand.id,
+                })
+            ));
+        } catch (error) {
+            console.error('Failed to send band_formed notifications:', error);
+        }
+
         return newBand;
     }
 
@@ -768,6 +785,28 @@ export class FirebaseRepository implements IRepository {
             createdAt: new Date()
         };
         await setDoc(doc(db, 'rehearsalPolls', id), poll);
+
+        // Notify all band members except the creator
+        try {
+            const band = await this.getBand(data.bandId);
+            if (band) {
+                await Promise.all(
+                    band.members
+                        .filter(m => m.userId !== data.creatorId)
+                        .map(m => this.createNotification({
+                            userId: m.userId,
+                            type: 'poll_created',
+                            title: '📅 הצבעה חדשה לחזרה',
+                            body: 'נפתחה הצבעה חדשה לקביעת מועד לחזרה. לחץ להצביע!',
+                            relatedEntityType: 'band',
+                            relatedEntityId: data.bandId,
+                        }))
+                );
+            }
+        } catch (error) {
+            console.error('Failed to send poll_created notifications:', error);
+        }
+
         return poll;
     }
 
@@ -849,9 +888,29 @@ export class FirebaseRepository implements IRepository {
             status: 'scheduled' as any // RehearsalStatus.SCHEDULED
         });
 
-        // Delete poll or mark as finalized? 
+        // Delete poll or mark as finalized?
         // For now, let's delete it to clean up or maybe move to 'archivedPolls'
         await deleteDoc(doc(db, 'rehearsalPolls', pollId));
+
+        // Notify all band members about the scheduled rehearsal
+        try {
+            const band = await this.getBand(poll.bandId);
+            if (band) {
+                const dateStr = option.dateTime.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' });
+                await Promise.all(
+                    band.members.map(m => this.createNotification({
+                        userId: m.userId,
+                        type: 'rehearsal_scheduled',
+                        title: '🎸 חזרה נקבעה!',
+                        body: `החזרה נקבעה ל${dateStr}. לחץ לפרטים.`,
+                        relatedEntityType: 'band',
+                        relatedEntityId: poll.bandId,
+                    }))
+                );
+            }
+        } catch (error) {
+            console.error('Failed to send rehearsal_scheduled notifications:', error);
+        }
 
         return rehearsal;
     }
@@ -878,6 +937,28 @@ export class FirebaseRepository implements IRepository {
             updatedAt: new Date()
         };
         await setDoc(doc(db, 'songs', id), song);
+
+        // Notify all band members except the uploader
+        try {
+            const band = await this.getBand(data.bandId);
+            if (band) {
+                await Promise.all(
+                    band.members
+                        .filter(m => m.userId !== data.createdBy)
+                        .map(m => this.createNotification({
+                            userId: m.userId,
+                            type: 'new_song',
+                            title: '🎵 סקיצה חדשה הועלתה!',
+                            body: `"${data.title}" נוספה למאגר השירים של הלהקה.`,
+                            relatedEntityType: 'band',
+                            relatedEntityId: data.bandId,
+                        }))
+                );
+            }
+        } catch (error) {
+            console.error('Failed to send new_song notifications:', error);
+        }
+
         return song;
     }
 
@@ -1142,12 +1223,30 @@ export class FirebaseRepository implements IRepository {
         };
         await setDoc(doc(db, 'postLikes', id), like);
 
-        // Update count
+        // Update count and notify post author
         const postRef = doc(db, 'posts', postId);
         const postSnap = await getDoc(postRef);
         if (postSnap.exists()) {
-            const current = postSnap.data().likesCount || 0;
+            const postData = postSnap.data();
+            const current = postData.likesCount || 0;
             await updateDoc(postRef, { likesCount: current + 1 });
+
+            // Notify post author (if different from liker)
+            if (postData.authorId && postData.authorId !== userId) {
+                try {
+                    const liker = await this.getUser(userId);
+                    await this.createNotification({
+                        userId: postData.authorId,
+                        type: 'like',
+                        title: '❤️ לייק חדש!',
+                        body: `${liker?.displayName || 'מישהו'} אהב/ה את הפוסט שלך`,
+                        relatedEntityType: 'post',
+                        relatedEntityId: postId,
+                    });
+                } catch (error) {
+                    console.error('Failed to send like notification:', error);
+                }
+            }
         }
     }
 
@@ -1187,12 +1286,30 @@ export class FirebaseRepository implements IRepository {
         };
         await setDoc(doc(db, 'comments', id), comment);
 
-        // Update post comment count
+        // Update post comment count and notify post author
         const postRef = doc(db, 'posts', data.postId);
         const postSnap = await getDoc(postRef);
         if (postSnap.exists()) {
-            const current = postSnap.data().commentsCount || 0;
+            const postData = postSnap.data();
+            const current = postData.commentsCount || 0;
             await updateDoc(postRef, { commentsCount: current + 1 });
+
+            // Notify post author (if different from commenter)
+            if (postData.authorId && postData.authorId !== data.authorId) {
+                try {
+                    const commenter = await this.getUser(data.authorId);
+                    await this.createNotification({
+                        userId: postData.authorId,
+                        type: 'comment',
+                        title: '💬 תגובה חדשה על הפוסט שלך',
+                        body: `${commenter?.displayName || 'מישהו'} הגיב/ה: "${data.content.substring(0, 40)}${data.content.length > 40 ? '...' : ''}"`,
+                        relatedEntityType: 'post',
+                        relatedEntityId: data.postId,
+                    });
+                } catch (error) {
+                    console.error('Failed to send comment notification:', error);
+                }
+            }
         }
 
         return comment;
@@ -1274,6 +1391,25 @@ export class FirebaseRepository implements IRepository {
             createdAt: new Date()
         };
         await setDoc(doc(db, 'eventRegistrations', id), reg);
+
+        // Notify event organizer
+        try {
+            const event = await this.getEvent(eventId);
+            if (event && event.organizerId && event.organizerId !== userId) {
+                const registrant = await this.getUser(userId);
+                await this.createNotification({
+                    userId: event.organizerId,
+                    type: 'event_registration',
+                    title: '🎟️ נרשם משתתף חדש לאירוע שלך',
+                    body: `${registrant?.displayName || 'מישהו'} נרשם/ה לאירוע "${event.title}"`,
+                    relatedEntityType: 'event',
+                    relatedEntityId: eventId,
+                });
+            }
+        } catch (error) {
+            console.error('Failed to send event_registration notification:', error);
+        }
+
         return reg;
     }
 
@@ -1411,6 +1547,29 @@ export class FirebaseRepository implements IRepository {
         );
 
         await setDoc(doc(db, 'chatMessages', id), sanitized);
+
+        // Notify other band members about the new message
+        try {
+            const band = await this.getBand(bandId);
+            if (band) {
+                const preview = content.substring(0, 50) + (content.length > 50 ? '...' : '');
+                await Promise.all(
+                    band.members
+                        .filter(m => m.userId !== user.id)
+                        .map(m => this.createNotification({
+                            userId: m.userId,
+                            type: 'chat_message',
+                            title: `💬 הודעה חדשה ב"${band.name}"`,
+                            body: preview,
+                            relatedEntityType: 'band',
+                            relatedEntityId: bandId,
+                        }))
+                );
+            }
+        } catch (error) {
+            console.error('Failed to send chat_message notifications:', error);
+        }
+
         return message;
 
     }
