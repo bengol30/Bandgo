@@ -75,6 +75,7 @@ export interface IRepository {
     // ============ AUTH ============
     getCurrentUser(): Promise<User | null>;
     signIn(email: string, password: string): Promise<User>;
+    signInWithGoogle(): Promise<User>;
     signOut(): Promise<void>;
     updateProfile(userId: string, data: Partial<User>): Promise<User>;
 

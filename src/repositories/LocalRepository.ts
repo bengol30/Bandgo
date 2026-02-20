@@ -250,6 +250,16 @@ export class LocalRepository implements IRepository {
         return user;
     }
 
+    async signInWithGoogle(): Promise<User> {
+        await this.delay();
+        // Since LocalRepository is a dev environment, use a mock flow
+        const user = this.users.find(u => u.email === 'yonatan@example.com') || this.users[0];
+        if (!user) throw new Error('No users available for mock Google Login');
+        this.currentUserId = user.id;
+        localStorage.setItem(this.AUTH_KEY, user.id);
+        return user;
+    }
+
     async signOut(): Promise<void> {
         await this.delay();
         this.currentUserId = CURRENT_USER_ID;

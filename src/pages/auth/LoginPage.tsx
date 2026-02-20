@@ -59,7 +59,19 @@ export function LoginPage() {
 
                 {/* Social Login Mocks */}
                 <div className="social-login">
-                    <button type="button" className="social-btn" onClick={signInWithGoogle}>
+                    <button
+                        type="button"
+                        className="social-btn"
+                        onClick={async () => {
+                            try {
+                                await signInWithGoogle();
+                                navigate('/');
+                            } catch (err) {
+                                const error = err as Error;
+                                setError(error.message || 'התחברות נכשלה');
+                            }
+                        }}
+                    >
                         <img src="https://www.svgrepo.com/show/355037/google.svg" alt="" width="18" height="18" />
                         <span>Google</span>
                     </button>

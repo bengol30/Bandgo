@@ -40,7 +40,8 @@ import {
     SchedulingSuggestion,
     MediaFile,
     Task,
-    PostType
+    PostType,
+    UserRole
 } from '../types';
 import { db, storage } from '../config/firebase';
 import {
@@ -239,6 +240,53 @@ export class FirebaseRepository implements IRepository {
         this.currentUserId = newUser.id;
         localStorage.setItem('bandgo_auth_user_id', newUser.id);
         return newUser;
+    }
+
+    async signInWithGoogle(): Promise<User> {
+        const { GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
+        const { auth } = await import('../config/firebase');
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider);
+        const fbUser = result.user;
+
+        // Check if user exists in database
+        const userRef = doc(db, 'users', fbUser.uid);
+        const userSnap = await getDoc(userRef);
+
+        let user: User;
+
+        if (userSnap.exists()) {
+            user = convertDates(userSnap.data()) as User;
+        } else {
+            // Create a new user profile using Google details
+            user = {
+                id: fbUser.uid,
+                email: fbUser.email || '',
+                displayName: fbUser.displayName || 'משתמש חדש',
+                phone: fbUser.phoneNumber || '',
+                avatarUrl: fbUser.photoURL || '',
+                city: '',
+                region: '',
+                radiusKm: 20, // Default radius
+                genres: [],
+                instruments: [],
+                isVocalist: false,
+                isSongwriter: false,
+                samples: [],
+                bio: '',
+                role: UserRole.USER, // Make sure UserRole is imported! (it is imported at top)
+                isOnboarded: false,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
+
+            // Set the doc payload. using sanitizeData as with signUp
+            await setDoc(userRef, sanitizeData(user));
+        }
+
+        this.currentUserId = user.id;
+        localStorage.setItem('bandgo_auth_user_id', user.id);
+        return user;
     }
 
     async signOut(): Promise<void> {
