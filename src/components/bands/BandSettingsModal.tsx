@@ -327,7 +327,7 @@ export function BandSettingsModal({ band, usersMap, isOpen, onClose, onBandUpdat
                                                             ? member.instruments.map(i => getInstrumentName(i)).join(', ')
                                                             : member.roles && member.roles.length > 0
                                                                 ? member.roles.map(r => getRoleName(r)).join(', ')
-                                                                : getInstrumentName(member.instrumentId)
+                                                                : member.instrumentId ? getInstrumentName(member.instrumentId) : 'חבר להקה'
                                                         }
                                                     </span>
                                                 </div>

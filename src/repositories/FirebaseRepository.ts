@@ -15,6 +15,7 @@ import {
     BandRequest,
     BandApplication,
     Band,
+    BandMember,
     Rehearsal,
     RehearsalStatus,
     RehearsalPoll,

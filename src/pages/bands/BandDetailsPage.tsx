@@ -240,7 +240,7 @@ export function BandDetailsPage() {
                                             ? member.instruments.map(i => getInstrumentName(i)).join(', ')
                                             : member.roles && member.roles.length > 0
                                                 ? member.roles.map(r => getRoleName(r)).join(', ')
-                                                : getInstrumentName(member.instrumentId)
+                                                : member.instrumentId ? getInstrumentName(member.instrumentId) : 'חבר להקה'
                                         }
                                         {/* Show roles if instruments are also present (or merged display) */}
                                         {member.instruments && member.instruments.length > 0 && member.roles && member.roles.length > 0 && (
