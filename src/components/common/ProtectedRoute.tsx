@@ -29,7 +29,8 @@ export function ProtectedRoute({ children, requireOnboarding = true }: Protected
     }
 
     // If authenticated but not onboarded and onboarding is required, redirect to onboarding
-    if (requireOnboarding && !user.isOnboarded) {
+    // Only redirect if isOnboarded is explicitly false (not undefined for backwards compatibility)
+    if (requireOnboarding && user.isOnboarded === false) {
         return <Navigate to="/onboarding" replace />;
     }
 

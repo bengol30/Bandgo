@@ -31,9 +31,9 @@ export function LoginPage() {
 
         try {
             await signIn(email, password);
-            // Check if user needs onboarding
+            // Check if user needs onboarding (only if explicitly false)
             const currentUser = await repository.getCurrentUser();
-            if (currentUser && !currentUser.isOnboarded) {
+            if (currentUser && currentUser.isOnboarded === false) {
                 navigate('/onboarding');
             } else {
                 navigate('/');
@@ -48,9 +48,9 @@ export function LoginPage() {
     const handleDevLogin = async (user: User) => {
         try {
             await signIn(user.email || '', 'password');
-            // Check if user needs onboarding
+            // Check if user needs onboarding (only if explicitly false)
             const currentUser = await repository.getCurrentUser();
-            if (currentUser && !currentUser.isOnboarded) {
+            if (currentUser && currentUser.isOnboarded === false) {
                 navigate('/onboarding');
             } else {
                 navigate('/');
@@ -77,9 +77,9 @@ export function LoginPage() {
                         onClick={async () => {
                             try {
                                 await signInWithGoogle();
-                                // Check if user needs onboarding
+                                // Check if user needs onboarding (only if explicitly false)
                                 const currentUser = await repository.getCurrentUser();
-                                if (currentUser && !currentUser.isOnboarded) {
+                                if (currentUser && currentUser.isOnboarded === false) {
                                     navigate('/onboarding');
                                 } else {
                                     navigate('/');
