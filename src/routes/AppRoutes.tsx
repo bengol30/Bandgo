@@ -1,7 +1,7 @@
 import React from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { AppLayout } from '../components/layout';
+import { ProtectedLayout } from '../components/layout';
 
 // Pages
 import { OnboardingPage } from '../pages/auth/OnboardingPage';
@@ -56,116 +56,116 @@ export function AppRoutes() {
 
             {/* Main App Routes with Layout */}
             <Route path="/" element={
-                <AppLayout>
+                <ProtectedLayout>
                     <FeedPage />
-                </AppLayout>
+                </ProtectedLayout>
             } />
 
             <Route path="/requests" element={
-                <AppLayout>
+                <ProtectedLayout>
                     <BandRequestsPage />
-                </AppLayout>
+                </ProtectedLayout>
             } />
 
             <Route path="/requests/new" element={
-                <AppLayout>
+                <ProtectedLayout>
                     <CreateBandRequestPage />
-                </AppLayout>
+                </ProtectedLayout>
             } />
 
             <Route path="/requests/:id" element={
-                <AppLayout>
+                <ProtectedLayout>
                     <BandRequestDetailsPage />
-                </AppLayout>
+                </ProtectedLayout>
             } />
 
             {/* Bands Listing Page */}
             <Route path="/bands" element={
-                <AppLayout>
+                <ProtectedLayout>
                     <BandsPage />
-                </AppLayout>
+                </ProtectedLayout>
             } />
 
             {/* Public Band Profile -> Refactored from BandDetailsPage */}
             <Route path="/bands/:id" element={
-                <AppLayout>
+                <ProtectedLayout>
                     <BandDetailsPage />
-                </AppLayout>
+                </ProtectedLayout>
             } />
 
             {/* Private Band Workspace -> New Route */}
             <Route path="/bands/:bandId/workspace" element={
-                <AppLayout>
+                <ProtectedLayout>
                     <BandWorkspacePage />
-                </AppLayout>
+                </ProtectedLayout>
             } />
 
             {/* Legacy/Specific feature routes (can be folded into workspace later) */}
             <Route path="/bands/:bandId/chat" element={
-                <AppLayout>
+                <ProtectedLayout>
                     <BandChatPage />
-                </AppLayout>
+                </ProtectedLayout>
             } />
 
             <Route path="/messages" element={
-                <AppLayout>
+                <ProtectedLayout>
                     <MessagesPage />
-                </AppLayout>
+                </ProtectedLayout>
             } />
 
             <Route path="/messages/:conversationId" element={
-                <AppLayout>
+                <ProtectedLayout>
                     <DirectChatPage />
-                </AppLayout>
+                </ProtectedLayout>
             } />
 
             <Route path="/events" element={
-                <AppLayout>
+                <ProtectedLayout>
                     <EventsPage />
-                </AppLayout>
+                </ProtectedLayout>
             } />
 
             <Route path="/events/:id" element={
-                <AppLayout>
+                <ProtectedLayout>
                     <EventDetailsPage />
-                </AppLayout>
+                </ProtectedLayout>
             } />
 
             <Route path="/profile/edit" element={
-                <AppLayout>
+                <ProtectedLayout>
                     <EditProfilePage />
-                </AppLayout>
+                </ProtectedLayout>
             } />
 
             <Route path="/profile" element={
-                <AppLayout>
+                <ProtectedLayout>
                     <ProfilePage />
-                </AppLayout>
+                </ProtectedLayout>
             } />
 
             <Route path="/profile/:userId" element={
-                <AppLayout>
+                <ProtectedLayout>
                     <UserProfilePage />
-                </AppLayout>
+                </ProtectedLayout>
             } />
 
             <Route path="/notifications" element={
-                <AppLayout>
+                <ProtectedLayout>
                     <NotificationsPage />
-                </AppLayout>
+                </ProtectedLayout>
             } />
 
             <Route path="/admin" element={
-                <AppLayout>
+                <ProtectedLayout>
                     <AdminPage />
-                </AppLayout>
+                </ProtectedLayout>
             } />
 
             {/* Catch all - redirect to feed */}
             <Route path="*" element={
-                <AppLayout>
+                <ProtectedLayout>
                     <NotFoundPage />
-                </AppLayout>
+                </ProtectedLayout>
             } />
         </Routes>
     );

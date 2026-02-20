@@ -6,7 +6,7 @@ import { User } from '../../types';
 import './Login.css';
 
 export function LoginPage() {
-    const { signIn, signInWithGoogle } = useAuth();
+    const { signIn, signInWithGoogle, user } = useAuth();
     const navigate = useNavigate();
 
     // Form State
@@ -31,7 +31,13 @@ export function LoginPage() {
 
         try {
             await signIn(email, password);
-            navigate('/');
+            // Check if user needs onboarding
+            const currentUser = await repository.getCurrentUser();
+            if (currentUser && !currentUser.isOnboarded) {
+                navigate('/onboarding');
+            } else {
+                navigate('/');
+            }
         } catch (err) {
             setError('האימייל או הסיסמה שגויים. נסה שוב.');
         } finally {
@@ -42,7 +48,13 @@ export function LoginPage() {
     const handleDevLogin = async (user: User) => {
         try {
             await signIn(user.email || '', 'password');
-            navigate('/');
+            // Check if user needs onboarding
+            const currentUser = await repository.getCurrentUser();
+            if (currentUser && !currentUser.isOnboarded) {
+                navigate('/onboarding');
+            } else {
+                navigate('/');
+            }
         } catch (error) {
             console.error(error);
         }
@@ -65,7 +77,13 @@ export function LoginPage() {
                         onClick={async () => {
                             try {
                                 await signInWithGoogle();
-                                navigate('/');
+                                // Check if user needs onboarding
+                                const currentUser = await repository.getCurrentUser();
+                                if (currentUser && !currentUser.isOnboarded) {
+                                    navigate('/onboarding');
+                                } else {
+                                    navigate('/');
+                                }
                             } catch (err) {
                                 const error = err as Error;
                                 setError(error.message || 'התחברות נכשלה');

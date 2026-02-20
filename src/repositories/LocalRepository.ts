@@ -89,7 +89,7 @@ export class LocalRepository implements IRepository {
     private settings: SystemSettings = { ...mockSettings };
     private reports: AppReport[] = [];
 
-    private currentUserId: string = CURRENT_USER_ID;
+    private currentUserId: string = '';
     private readonly STORAGE_KEY = 'bandgo_local_db_v2';
     private readonly AUTH_KEY = 'bandgo_auth_user_id';
 
@@ -262,7 +262,7 @@ export class LocalRepository implements IRepository {
 
     async signOut(): Promise<void> {
         await this.delay();
-        this.currentUserId = CURRENT_USER_ID;
+        this.currentUserId = '';
         localStorage.removeItem(this.AUTH_KEY);
     }
 

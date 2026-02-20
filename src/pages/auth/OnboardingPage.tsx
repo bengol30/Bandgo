@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Sparkles,
@@ -47,7 +47,7 @@ const timelineSteps = [
 
 export function OnboardingPage() {
     const navigate = useNavigate();
-    const { register } = useAuth();
+    const { register, user, updateProfile } = useAuth();
     const { showToast } = useToast();
 
     // Steps: 0=Intro, 1=Account, 2=Profile
@@ -67,6 +67,22 @@ export function OnboardingPage() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Pre-fill form data if user is already signed in (from Google)
+    useEffect(() => {
+        if (user) {
+            setFormData(prev => ({
+                ...prev,
+                displayName: user.displayName || '',
+                email: user.email || '',
+                bio: user.bio || '',
+                city: user.city || ''
+            }));
+            if (user.avatarUrl) {
+                setPreviewUrl(user.avatarUrl);
+            }
+        }
+    }, [user]);
 
     const handleNext = () => setStep(prev => prev + 1);
     const handleBack = () => setStep(prev => prev - 1);
@@ -108,25 +124,46 @@ export function OnboardingPage() {
                 }
             }
 
-            showToast('יוצר משתמש...', 'info');
-            await register({
-                displayName: formData.displayName,
-                email: formData.email,
-                avatarUrl: finalAvatarUrl,
-                role: UserRole.USER,
-                bio: formData.bio,
-                city: formData.city,
-                radiusKm: 30, // Default radius
-                isVocalist: false, // Default
-                isSongwriter: false, // Default
-                samples: [],
-                genres: formData.genres,
-                isOnboarded: true,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                instruments: formData.selectedInstruments.map(id => ({ instrumentId: id }))
-            });
-            showToast('ההרשמה בוצעה בהצלחה! ברוכים הבאים 🎉', 'success');
+            // Check if user is already signed in (from Google Sign-In)
+            if (user) {
+                // Update existing user profile
+                showToast('משלים את הפרופיל...', 'info');
+                await updateProfile({
+                    displayName: formData.displayName,
+                    avatarUrl: finalAvatarUrl,
+                    bio: formData.bio,
+                    city: formData.city,
+                    radiusKm: 30,
+                    isVocalist: false,
+                    isSongwriter: false,
+                    genres: formData.genres,
+                    isOnboarded: true,
+                    updatedAt: new Date(),
+                    instruments: formData.selectedInstruments.map(id => ({ instrumentId: id }))
+                });
+                showToast('הפרופיל הושלם בהצלחה! ברוכים הבאים 🎉', 'success');
+            } else {
+                // Create new user (email/password registration)
+                showToast('יוצר משתמש...', 'info');
+                await register({
+                    displayName: formData.displayName,
+                    email: formData.email,
+                    avatarUrl: finalAvatarUrl,
+                    role: UserRole.USER,
+                    bio: formData.bio,
+                    city: formData.city,
+                    radiusKm: 30,
+                    isVocalist: false,
+                    isSongwriter: false,
+                    samples: [],
+                    genres: formData.genres,
+                    isOnboarded: true,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                    instruments: formData.selectedInstruments.map(id => ({ instrumentId: id }))
+                });
+                showToast('ההרשמה בוצעה בהצלחה! ברוכים הבאים 🎉', 'success');
+            }
             navigate('/');
         } catch (error: any) {
             console.error('Registration failed:', error);
