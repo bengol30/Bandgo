@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Cache and Refresh</title>
+</head>
+<body>
+    <h1>Clearing cache...</h1>
+    <script>
+        localStorage.clear();
+        sessionStorage.clear();
+        alert('Cache cleared! Click OK to refresh.');
+        window.location.href = '/login';
+    </script>
+</body>
+</html>
