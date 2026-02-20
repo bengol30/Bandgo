@@ -54,6 +54,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const signInWithGoogle = async () => {
         const loggedInUser = await repository.signInWithGoogle();
+        console.log('👤 [AuthContext] User after Google sign-in:', {
+            email: loggedInUser.email,
+            role: loggedInUser.role,
+            isAdmin: loggedInUser.role === 'admin'
+        });
         setUser(loggedInUser);
     };
 

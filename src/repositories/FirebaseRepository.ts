@@ -258,6 +258,12 @@ export class FirebaseRepository implements IRepository {
 
         if (userSnap.exists()) {
             user = convertDates(userSnap.data()) as User;
+            console.log('🔐 [signInWithGoogle] Loaded existing user:', {
+                id: user.id,
+                email: user.email,
+                role: user.role,
+                isAdmin: user.role === 'admin'
+            });
         } else {
             // Create a new user profile using Google details
             user = {
@@ -471,6 +477,29 @@ export class FirebaseRepository implements IRepository {
                     currentMembers: members,
                     instrumentSlots: slots
                 });
+
+                // ALSO update the actual Band if it exists (formed band)
+                // Find band by originalBandRequestId
+                const bandsQuery = query(collection(db, 'bands'), where('originalBandRequestId', '==', app.bandRequestId));
+                const bandsSnap = await getDocs(bandsQuery);
+
+                if (!bandsSnap.empty) {
+                    const bandDoc = bandsSnap.docs[0];
+                    const band = convertDates(bandDoc.data()) as Band;
+                    const bandMembers = band.members || [];
+
+                    // Check if user is already a member
+                    if (!bandMembers.some(m => m.userId === app.applicantId)) {
+                        const newMember: BandMember = {
+                            userId: app.applicantId,
+                            instrumentId: app.instrumentId,
+                            joinedAt: new Date(),
+                            isLeader: false
+                        };
+                        bandMembers.push(newMember);
+                        batch.update(doc(db, 'bands', bandDoc.id), { members: bandMembers });
+                    }
+                }
             }
         }
 
