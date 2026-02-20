@@ -54,13 +54,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const signInWithGoogle = async () => {
         const users = await repository.getAllUsers();
-        const googleUser = users.find(u => u.email === 'user@gmail.com');
+        // Try to find yonatan@example.com (current user mock), otherwise grab the first user
+        const googleUser = users.find(u => u.email === 'yonatan@example.com') || users[0];
 
         if (!googleUser) {
-            throw new Error('Google login is not configured. Please use email/password login.');
+            throw new Error('No mock users found in the database. Please check your data seed.');
         }
 
-        setUser(googleUser);
+        // Use the signIn method to simulate standard login and persist in localStorage
+        await signIn({ email: googleUser.email, password: 'mock-password-for-google' } as any, 'mock-password-for-google');
     };
 
     const signOut = async () => {

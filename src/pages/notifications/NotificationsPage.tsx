@@ -50,12 +50,17 @@ export function NotificationsPage() {
             // Auto-mark all unread notifications as read when viewing the notifications page
             const unreadNotifications = data.filter(n => !n.read);
             if (unreadNotifications.length > 0) {
-                // Mark all as read in the background
-                repository.markAllNotificationsRead(user.id).catch(err => {
-                    console.error('Failed to auto-mark notifications as read:', err);
-                });
-                // Update UI immediately
+                // Update UI immediately for responsive feel
                 setNotifications(data.map(n => ({ ...n, read: true })));
+
+                // Mark all as read in the database
+                try {
+                    await repository.markAllNotificationsRead(user.id);
+                } catch (err) {
+                    console.error('Failed to auto-mark notifications as read:', err);
+                    // Revert UI if database update failed
+                    setNotifications(data);
+                }
             }
         } catch (error) {
             console.error('Failed to load notifications:', error);

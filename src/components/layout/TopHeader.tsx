@@ -2,7 +2,7 @@
 // bandgo - Top Header Component
 // ============================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Bell, Settings } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -14,18 +14,7 @@ export function TopHeader() {
     const location = useLocation();
     const [unreadCount, setUnreadCount] = useState(0);
 
-    useEffect(() => {
-        loadNotifications();
-    }, [user]);
-
-    // Refresh notification count when navigating away from notifications page
-    useEffect(() => {
-        if (location.pathname !== '/notifications' && user) {
-            loadNotifications();
-        }
-    }, [location.pathname, user]);
-
-    const loadNotifications = async () => {
+    const loadNotifications = useCallback(async () => {
         if (!user) return;
         try {
             const notifications = await repository.getNotifications(user.id);
@@ -34,7 +23,19 @@ export function TopHeader() {
         } catch (error) {
             console.error('Failed to load notifications:', error);
         }
-    };
+    }, [user]);
+
+    // Load notifications on mount and when user changes
+    useEffect(() => {
+        loadNotifications();
+    }, [loadNotifications]);
+
+    // Refresh notification count when navigating away from notifications page
+    useEffect(() => {
+        if (location.pathname !== '/notifications' && user) {
+            loadNotifications();
+        }
+    }, [location.pathname, user, loadNotifications]);
 
     // Don't show header on onboarding or specific pages
     // Routes where the top header should be hidden
