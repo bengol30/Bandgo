@@ -4,7 +4,7 @@ import { Band, User, BandApplication } from '../../types';
 import { repository } from '../../repositories';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { getInstrumentName } from '../../utils';
+import { getInstrumentName, getRoleName } from '../../utils';
 import './BandSettings.css';
 
 interface BandSettingsModalProps {
@@ -322,7 +322,14 @@ export function BandSettingsModal({ band, usersMap, isOpen, onClose, onBandUpdat
                                                 <span className="member-name">{memberUser?.displayName || 'Unknown'}</span>
                                                 <div className="member-badges">
                                                     {isMemberLeader && <span className="member-badge leader">מנהל</span>}
-                                                    <span className="member-badge instrument">{getInstrumentName(member.instrumentId)}</span>
+                                                    <span className="member-badge instrument">
+                                                        {member.instruments && member.instruments.length > 0
+                                                            ? member.instruments.map(i => getInstrumentName(i)).join(', ')
+                                                            : member.roles && member.roles.length > 0
+                                                                ? member.roles.map(r => getRoleName(r)).join(', ')
+                                                                : getInstrumentName(member.instrumentId)
+                                                        }
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>

@@ -46,6 +46,17 @@ export function NotificationsPage() {
             setLoading(true);
             const data = await repository.getNotifications(user.id);
             setNotifications(data);
+
+            // Auto-mark all unread notifications as read when viewing the notifications page
+            const unreadNotifications = data.filter(n => !n.read);
+            if (unreadNotifications.length > 0) {
+                // Mark all as read in the background
+                repository.markAllNotificationsRead(user.id).catch(err => {
+                    console.error('Failed to auto-mark notifications as read:', err);
+                });
+                // Update UI immediately
+                setNotifications(data.map(n => ({ ...n, read: true })));
+            }
         } catch (error) {
             console.error('Failed to load notifications:', error);
             showToast('שגיאה בטעינת התראות', 'error');

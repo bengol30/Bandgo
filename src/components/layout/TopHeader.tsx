@@ -18,6 +18,13 @@ export function TopHeader() {
         loadNotifications();
     }, [user]);
 
+    // Refresh notification count when navigating away from notifications page
+    useEffect(() => {
+        if (location.pathname !== '/notifications' && user) {
+            loadNotifications();
+        }
+    }, [location.pathname, user]);
+
     const loadNotifications = async () => {
         if (!user) return;
         try {

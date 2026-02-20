@@ -171,6 +171,14 @@
     color: var(--color-primary);
 }
 
+.highlight-creator-role {
+    background: rgba(168, 85, 247, 0.1);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    padding: 4px 12px;
+    border-radius: 999px;
+    color: var(--color-primary);
+}
+
 /* Creator Inline */
 .creator-inline {
     display: flex;

@@ -22,7 +22,7 @@ import {
     SocialLink, RepertoireItem
 } from '../../types';
 import {
-    getInstrumentName, getInstrumentIcon, getGenreName, formatTimeAgo
+    getInstrumentName, getInstrumentIcon, getGenreName, formatTimeAgo, getRoleName
 } from '../../utils';
 import { INSTRUMENTS, GENRES, BAND_COVER_OPTIONS } from '../../data/constants';
 import './BandRequestDetails.css';
@@ -462,15 +462,60 @@ export function BandRequestDetailsPage() {
             <div className="details-hero">
                 <div className="details-hero-content">
                     {isEditing && (
-                        <div className="hero-cover-edit">
-                            <button
-                                className="btn btn-sm btn-outline btn-light"
-                                onClick={() => setShowCoverModal(true)}
-                                style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 10, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.3)' }}
-                            >
-                                <ImageIcon size={16} className="me-2" />
-                                שינוי תמונת קאבר
-                            </button>
+                        <div className="hero-cover-edit-overlay" style={{
+                            position: 'absolute',
+                            inset: 0,
+                            backgroundColor: 'rgba(0,0,0,0.5)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '12px',
+                            zIndex: 10,
+                            backdropFilter: 'blur(2px)'
+                        }}>
+                            <div style={{
+                                display: 'flex',
+                                gap: '12px',
+                                flexWrap: 'wrap',
+                                justifyContent: 'center',
+                                width: '100%',
+                                padding: '0 20px'
+                            }}>
+                                <label
+                                    htmlFor="cover-edit-upload"
+                                    className="btn btn-primary"
+                                    style={{
+                                        cursor: 'pointer',
+                                        padding: '12px 20px',
+                                        fontSize: '1rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        boxShadow: '0 4px 6px rgba(0,0,0,0.2)'
+                                    }}
+                                >
+                                    <Plus size={20} />
+                                    העלה תמונה
+                                </label>
+                                <button
+                                    className="btn btn-outline btn-light"
+                                    onClick={() => setShowCoverModal(true)}
+                                    style={{
+                                        padding: '12px 20px',
+                                        fontSize: '1rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        backgroundColor: 'rgba(255,255,255,0.1)',
+                                        border: '1px solid rgba(255,255,255,0.5)',
+                                        backdropFilter: 'blur(4px)'
+                                    }}
+                                >
+                                    <ImageIcon size={20} />
+                                    בחר מגלריה
+                                </button>
+                            </div>
 
                             <input
                                 type="file"
@@ -487,23 +532,15 @@ export function BandRequestDetailsPage() {
                                     }
                                 }}
                             />
-                            <label
-                                htmlFor="cover-edit-upload"
-                                className="btn btn-sm btn-outline btn-light"
-                                style={{ position: 'absolute', top: '60px', right: '20px', zIndex: 10, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.3)', cursor: 'pointer' }}
-                            >
-                                <Plus size={16} className="me-2" />
-                                העלה מהמכשיר
-                            </label>
                         </div>
                     )}
 
-                    <button className="hero-back-btn" onClick={() => navigate(-1)}>
+                    <button className="hero-back-btn" onClick={() => navigate(-1)} style={{ zIndex: 20 }}>
                         <ArrowLeft size={20} />
                     </button>
 
                     {/* Actions stacked vertically on the left side */}
-                    <div className="hero-side-actions">
+                    <div className="hero-side-actions" style={{ zIndex: 20 }}>
                         {isCreator && (
                             <button
                                 className={`hero-action-btn ${isEditing ? 'active' : ''}`}
@@ -627,6 +664,44 @@ export function BandRequestDetailsPage() {
                             <Music size={16} />
                             <span>{request.originalVsCoverRatio}% מקורי</span>
                         </div>
+
+                        {/* Creator Role Display */}
+                        {(request.creatorRoles && request.creatorRoles.length > 0) ? (
+                            <div className="quick-info-item highlight-creator-role" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                {request.creatorRoles.map((role, idx) => (
+                                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        {role.kind === 'INSTRUMENT' ? (
+                                            <>
+                                                <span>{getInstrumentIcon(role.value)}</span>
+                                                <span>{getInstrumentName(role.value)}</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Mic2 size={16} />
+                                                <span>{getRoleName(role.value)}</span>
+                                            </>
+                                        )}
+                                        {idx < (request.creatorRoles?.length || 0) - 1 && <span style={{ opacity: 0.5 }}>|</span>}
+                                    </div>
+                                ))}
+                                <span style={{ fontSize: '0.9em', opacity: 0.8, marginRight: '4px' }}>(מחפש/ת להקים)</span>
+                            </div>
+                        ) : request.creatorSlot ? (
+                            <div className="quick-info-item highlight-creator-role">
+                                {request.creatorSlot.kind === 'INSTRUMENT' ? (
+                                    <>
+                                        <span>{getInstrumentIcon(request.creatorSlot.value)}</span>
+                                        <span>מחפש/ת להקים הרכב כ{getInstrumentName(request.creatorSlot.value)}</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Mic2 size={16} />
+                                        <span>מחפש/ת להקים הרכב כ{getRoleName(request.creatorSlot.value)}</span>
+                                    </>
+                                )}
+                            </div>
+                        ) : null}
+
                         {request.commitmentLevel && (
                             <div className="quick-info-item">
                                 <Zap size={16} />
@@ -648,6 +723,79 @@ export function BandRequestDetailsPage() {
                         )}
                     </div>
                 )}
+
+                {/* About the project */}
+                <section className="details-section about-section">
+                    <h2>
+                        <Music size={18} />
+                        על הפרויקט
+                    </h2>
+                    {isEditing ? (
+                        <textarea
+                            className="form-textarea"
+                            value={editForm.description}
+                            onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                            rows={6}
+                        />
+                    ) : (
+                        <p className="description-text">{request.description}</p>
+                    )}
+
+                    {!isEditing && (
+                        <div className="genres-list">
+                            {request.genres.map(g => (
+                                <span key={g} className="genre-tag">
+                                    # {getGenreName(g)}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Influences */}
+                    {request.influences && request.influences.length > 0 && (
+                        <div className="influences-section">
+                            <h3>השראות מוזיקליות</h3>
+                            <div className="influences-list">
+                                {request.influences.map((inf, i) => (
+                                    <span key={i} className="influence-tag">
+                                        <Music size={12} />
+                                        {inf}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Media / Sketches */}
+                    {(request.sketches?.length > 0 || request.sketchPending) && (
+                        <div className="media-section">
+                            <h3>סקיצות והקלטות</h3>
+                            {request.sketches?.length > 0 ? (
+                                <div className="media-grid">
+                                    {request.sketches.map(media => (
+                                        <div key={media.id} className="media-item">
+                                            <div className="media-icon-wrapper">
+                                                {media.type === 'audio' ? <Mic2 size={24} /> : <Play size={24} />}
+                                            </div>
+                                            <div className="media-info">
+                                                <h4>{media.name}</h4>
+                                                <a href={media.url} target="_blank" rel="noopener noreferrer" className="media-link">
+                                                    <ExternalLink size={14} />
+                                                    <span>נגן סקיצה</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="empty-media-state">
+                                    <AlertCircle size={20} />
+                                    <span>טרם הועלו סקיצות, אך ניתן לפנות ליוצר לקבלת חומרים.</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </section>
 
                 {isCreator && request.status === 'open' && !isEditing && (
                     <div style={{ marginTop: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
@@ -966,78 +1114,7 @@ export function BandRequestDetailsPage() {
 
 
 
-                {/* About the project */}
-                <section className="details-section about-section">
-                    <h2>
-                        <Music size={18} />
-                        על הפרויקט
-                    </h2>
-                    {isEditing ? (
-                        <textarea
-                            className="form-textarea"
-                            value={editForm.description}
-                            onChange={e => setEditForm({ ...editForm, description: e.target.value })}
-                            rows={6}
-                        />
-                    ) : (
-                        <p className="description-text">{request.description}</p>
-                    )}
 
-                    {!isEditing && (
-                        <div className="genres-list">
-                            {request.genres.map(g => (
-                                <span key={g} className="genre-tag">
-                                    # {getGenreName(g)}
-                                </span>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Influences */}
-                    {request.influences && request.influences.length > 0 && (
-                        <div className="influences-section">
-                            <h3>השראות מוזיקליות</h3>
-                            <div className="influences-list">
-                                {request.influences.map((inf, i) => (
-                                    <span key={i} className="influence-tag">
-                                        <Music size={12} />
-                                        {inf}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Media / Sketches */}
-                    {(request.sketches?.length > 0 || request.sketchPending) && (
-                        <div className="media-section">
-                            <h3>סקיצות והקלטות</h3>
-                            {request.sketches?.length > 0 ? (
-                                <div className="media-grid">
-                                    {request.sketches.map(media => (
-                                        <div key={media.id} className="media-item">
-                                            <div className="media-icon-wrapper">
-                                                {media.type === 'audio' ? <Mic2 size={24} /> : <Play size={24} />}
-                                            </div>
-                                            <div className="media-info">
-                                                <h4>{media.name}</h4>
-                                                <a href={media.url} target="_blank" rel="noopener noreferrer" className="media-link">
-                                                    <ExternalLink size={14} />
-                                                    <span>נגן סקיצה</span>
-                                                </a>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="empty-media-state">
-                                    <AlertCircle size={20} />
-                                    <span>טרם הועלו סקיצות, אך ניתן לפנות ליוצר לקבלת חומרים.</span>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </section>
 
                 {/* Repertoire Section */}
                 {(isEditing || (request.repertoire && request.repertoire.length > 0)) && (

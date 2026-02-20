@@ -10,8 +10,8 @@ import { useToast } from '../../contexts/ToastContext';
 import { Modal } from '../../components/Modal';
 import { repository } from '../../repositories';
 import { BandRequestType, BandRequestStatus, InstrumentSlot } from '../../types';
-import { INSTRUMENTS, GENRES, REGIONS, BAND_COVER_OPTIONS } from '../../data/constants';
-import { getInstrumentName, getInstrumentIcon } from '../../utils';
+import { BAND_ROLES, GENRES, INSTRUMENTS, REGIONS, BAND_COVER_OPTIONS } from '../../data/constants';
+import { getInstrumentName, getInstrumentIcon, getRoleName } from '../../utils';
 import './CreateBandRequest.css';
 
 export function CreateBandRequestPage() {
@@ -30,6 +30,25 @@ export function CreateBandRequestPage() {
     const [region, setRegion] = useState(user?.region || 'north');
     const [originalVsCoverRatio, setOriginalVsCoverRatio] = useState(50);
 
+    // Creator Role State
+    const [creatorRoles, setCreatorRoles] = useState<{ kind: 'INSTRUMENT' | 'ROLE', value: string }[]>([]);
+    const [showRoleSelector, setShowRoleSelector] = useState(false);
+
+    const handleAddCreatorRole = (role: { kind: 'INSTRUMENT' | 'ROLE', value: string }) => {
+        // Prevent duplicates
+        if (creatorRoles.some(r => r.kind === role.kind && r.value === role.value)) {
+            showToast('התפקיד כבר נבחר', 'warning');
+            return;
+        }
+        setCreatorRoles([...creatorRoles, role]);
+    };
+
+    const handleRemoveCreatorRole = (index: number) => {
+        const newRoles = [...creatorRoles];
+        newRoles.splice(index, 1);
+        setCreatorRoles(newRoles);
+    };
+
     // Targeted specific
     const [instrumentSlots, setInstrumentSlots] = useState<InstrumentSlot[]>([]);
 
@@ -42,9 +61,10 @@ export function CreateBandRequestPage() {
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [showCoverModal, setShowCoverModal] = useState(false);
 
-    // Instrument Selector Modal
+    // Instrument Selector Modal (Shared for Slots and Creator)
     const [showInstrumentModal, setShowInstrumentModal] = useState(false);
-    const [activeSlotIndex, setActiveSlotIndex] = useState<number | null>(null);
+    const [activeSlotIndex, setActiveSlotIndex] = useState<number | null>(null); // null means creator slot if modal is open for creator
+    const [isSelectingForCreator, setIsSelectingForCreator] = useState(false);
 
     const handleAddSlot = () => {
         setInstrumentSlots([...instrumentSlots, { instrumentId: 'guitar', quantity: 1, filledBy: [] }]);
@@ -80,6 +100,10 @@ export function CreateBandRequestPage() {
         if (!user) return;
         if (!title.trim()) {
             showToast('נא להזין כותרת', 'error');
+            return;
+        }
+        if (creatorRoles.length === 0) {
+            showToast('נא לבחור לפחות תפקיד אחד בהרכב', 'error');
             return;
         }
         if (selectedGenres.length === 0) {
@@ -122,6 +146,8 @@ export function CreateBandRequestPage() {
                 region,
                 radiusKm: 30, // Default
                 originalVsCoverRatio,
+                creatorRoles,
+                creatorSlot: creatorRoles[0], // Backward compatibility: user first role as primary slot
                 instrumentSlots: type === BandRequestType.TARGETED ? instrumentSlots : undefined,
                 maxMembers: type === BandRequestType.OPEN ? maxMembers : undefined,
                 currentMembers: [user.id],
@@ -204,6 +230,82 @@ export function CreateBandRequestPage() {
                         </div>
                     </section>
 
+                    {/* Creator Role Selection */}
+                    <section className="form-section">
+                        <h2>התפקיד שלי בהרכב (חובה)</h2>
+                        <p className="text-secondary text-sm mb-4">בחר כלי נגינה או תפקידים שאתה ממלא בפרויקט (ניתן לבחור יותר מאחד)</p>
+
+                        <div className="creator-roles-list flex flex-wrap gap-sm mb-4">
+                            {creatorRoles.map((role, index) => (
+                                <div key={index} className="selected-role-chip flex items-center gap-2 bg-surface border border-border rounded-full px-3 py-1">
+                                    {role.kind === 'INSTRUMENT' ? (
+                                        <>
+                                            <span>{getInstrumentIcon(role.value)}</span>
+                                            <span>{getInstrumentName(role.value)}</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>🎤</span>
+                                            <span>{getRoleName(role.value)}</span>
+                                        </>
+                                    )}
+                                    <button
+                                        type="button"
+                                        className="hover:text-error"
+                                        onClick={() => handleRemoveCreatorRole(index)}
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="role-actions flex gap-3">
+                            <button
+                                type="button"
+                                className="btn btn-outline flex-1 flex items-center justify-center gap-2"
+                                onClick={() => {
+                                    setIsSelectingForCreator(true);
+                                    setShowInstrumentModal(true);
+                                }}
+                            >
+                                <Music size={18} />
+                                הוסף כלי נגינה
+                            </button>
+
+                            <div className="relative flex-1">
+                                <button
+                                    type="button"
+                                    className="btn btn-outline w-full flex items-center justify-center gap-2"
+                                    onClick={() => setShowRoleSelector(!showRoleSelector)}
+                                >
+                                    <span>🎤</span>
+                                    הוסף תפקיד כללי
+                                </button>
+
+                                {showRoleSelector && (
+                                    <div className="absolute top-full left-0 right-0 mt-2 p-2 bg-surface border border-border rounded-lg shadow-xl z-20">
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {BAND_ROLES.map(role => (
+                                                <button
+                                                    key={role.id}
+                                                    type="button"
+                                                    className="text-right px-3 py-2 hover:bg-bg-secondary rounded text-sm"
+                                                    onClick={() => {
+                                                        handleAddCreatorRole({ kind: 'ROLE', value: role.id });
+                                                        setShowRoleSelector(false);
+                                                    }}
+                                                >
+                                                    {role.nameHe}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </section>
+
                     {/* Type & Roles */}
                     <section className="form-section">
                         <h2>סוג ההרכב</h2>
@@ -229,12 +331,13 @@ export function CreateBandRequestPage() {
 
                         {type === BandRequestType.TARGETED ? (
                             <div className="slots-editor">
-                                <h3>כלים דרושים</h3>
+                                <h3>כלים דרושים (בנוסף אליך)</h3>
                                 {instrumentSlots.map((slot, index) => (
                                     <div key={index} className="slot-row">
                                         <div
                                             className="slot-instrument-btn"
                                             onClick={() => {
+                                                setIsSelectingForCreator(false);
                                                 setActiveSlotIndex(index);
                                                 setShowInstrumentModal(true);
                                             }}
@@ -406,9 +509,15 @@ export function CreateBandRequestPage() {
                     {INSTRUMENTS.map(inst => (
                         <div
                             key={inst.id}
-                            className={`instrument-option-card ${activeSlotIndex !== null && instrumentSlots[activeSlotIndex]?.instrumentId === inst.id ? 'active' : ''}`}
+                            className={`instrument-option-card ${(isSelectingForCreator && creatorRoles.some(r => r.kind === 'INSTRUMENT' && r.value === inst.id)) ||
+                                (!isSelectingForCreator && activeSlotIndex !== null && instrumentSlots[activeSlotIndex]?.instrumentId === inst.id)
+                                ? 'active' : ''
+                                }`}
                             onClick={() => {
-                                if (activeSlotIndex !== null) {
+                                if (isSelectingForCreator) {
+                                    handleAddCreatorRole({ kind: 'INSTRUMENT', value: inst.id });
+                                    setShowInstrumentModal(false);
+                                } else if (activeSlotIndex !== null) {
                                     handleSlotChange(activeSlotIndex, 'instrumentId', inst.id);
                                     setShowInstrumentModal(false);
                                 }

@@ -482,9 +482,47 @@ export class FirebaseRepository implements IRepository {
 
         // Create initial member (leader)
         // In a real scenario, we would also fetch approved applications and add those users
-        const members: any[] = [{
+
+        // Initialize member data
+        let leaderInstruments: string[] = [];
+        let leaderRoles: string[] = [];
+        let leaderPrimaryInstrumentId = 'vocalist'; // Default fallback
+
+        if (bandRequest.creatorRoles && bandRequest.creatorRoles.length > 0) {
+            // New Multi-Role logic
+            bandRequest.creatorRoles.forEach(role => {
+                if (role.kind === 'INSTRUMENT') {
+                    leaderInstruments.push(role.value);
+                } else if (role.kind === 'ROLE') {
+                    leaderRoles.push(role.value);
+                }
+            });
+
+            // Set primary instrument if available
+            if (leaderInstruments.length > 0) {
+                leaderPrimaryInstrumentId = leaderInstruments[0];
+            } else if (leaderRoles.length > 0) {
+                // If only roles, use the first role as primary ID (or keep generic)
+                // leaderPrimaryInstrumentId = 'musician'; 
+            }
+        } else if (bandRequest.creatorSlot) {
+            // Backward compatibility
+            if (bandRequest.creatorSlot.kind === 'INSTRUMENT') {
+                leaderPrimaryInstrumentId = bandRequest.creatorSlot.value;
+                leaderInstruments = [bandRequest.creatorSlot.value];
+            } else if (bandRequest.creatorSlot.kind === 'ROLE') {
+                leaderRoles = [bandRequest.creatorSlot.value];
+            }
+        } else {
+            // Legacy fallback
+            leaderPrimaryInstrumentId = creator.instruments?.[0]?.instrumentId || 'vocalist';
+        }
+
+        const members: BandMember[] = [{
             userId: creator.id,
-            instrumentId: creator.instruments?.[0]?.instrumentId || 'vocalist', // Fallback
+            instrumentId: leaderPrimaryInstrumentId,
+            instruments: leaderInstruments.length > 0 ? leaderInstruments : undefined,
+            roles: leaderRoles.length > 0 ? leaderRoles : undefined,
             joinedAt: new Date(),
             isLeader: true
         }];
@@ -1469,14 +1507,19 @@ export class FirebaseRepository implements IRepository {
 
     // ============ NOTIFICATIONS ============
     async getNotifications(userId: string): Promise<Notification[]> {
+        // Query without orderBy to avoid index requirement while index is building
+        // Sort client-side instead
         const q = query(
             collection(db, 'notifications'),
-            where('userId', '==', userId),
-            orderBy('createdAt', 'desc'),
-            limit(50)
+            where('userId', '==', userId)
         );
         const sn = await getDocs(q);
-        return sn.docs.map(d => convertDates(d.data()) as Notification);
+        const notifications = sn.docs.map(d => convertDates(d.data()) as Notification);
+
+        // Sort by createdAt descending and limit to 50 most recent
+        return notifications
+            .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+            .slice(0, 50);
     }
 
     async markNotificationRead(id: string): Promise<void> {

@@ -100,3 +100,13 @@ export const BAND_COVER_OPTIONS = [
     'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=800&q=80', // 14. Songwriting/Notebook (New)
     'https://images.unsplash.com/photo-1445985543470-4102eb9c51e7?auto=format&fit=crop&w=800&q=80', // 15. Band Setup (New)
 ];
+
+export const BAND_ROLES = [
+    { id: 'vocalist', name: 'Vocalist', nameHe: 'זמר/ת' },
+    { id: 'rapper', name: 'Rapper', nameHe: 'ראפר/ית' },
+    { id: 'producer', name: 'Producer', nameHe: 'מפיק/ה' },
+    { id: 'dj', name: 'DJ', nameHe: 'דיג\'יי' },
+    { id: 'songwriter', name: 'Songwriter', nameHe: 'כותב/ת שירים' },
+    { id: 'musical_director', name: 'Musical Director', nameHe: 'מנהל/ת מוזיקלי/ת' },
+    { id: 'sound_engineer', name: 'Sound Engineer', nameHe: 'איש/אשת סאונד' },
+];

@@ -180,6 +180,19 @@ export interface BandRequest {
     radiusKm: number;
     originalVsCoverRatio: number;  // 0-100, 0 = all covers, 100 = all originals
 
+    // Creator's Role
+    creatorRoles?: {
+        kind: 'INSTRUMENT' | 'ROLE';
+        value: string;
+        level?: InstrumentLevel;
+    }[];
+
+    creatorSlot?: {
+        kind: 'INSTRUMENT' | 'ROLE';
+        value: string; // instrumentId or roleId
+        level?: InstrumentLevel;
+    };
+
     // For TARGETED requests
     instrumentSlots?: InstrumentSlot[];
 
@@ -234,7 +247,9 @@ export interface BandApplication {
 
 export interface BandMember {
     userId: string;
-    instrumentId: string;
+    instrumentId?: string; // Optional if role is defined
+    instruments?: string[]; // Multiple instruments support
+    roles?: string[];      // Array of role IDs (or instrument IDs if treated as roles)
     joinedAt: Date;
     isLeader: boolean;
 }

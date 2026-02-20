@@ -2,7 +2,7 @@
 // bandgo - Utility Functions
 // ============================================
 
-import { GENRES, INSTRUMENTS } from '../data/constants';
+import { GENRES, INSTRUMENTS, BAND_ROLES } from '../data/constants';
 
 // ============ FORMATTERS ============
 
@@ -51,6 +51,11 @@ export const getInstrumentIcon = (id: string): string => {
 export const getGenreName = (id: string): string => {
     const genre = GENRES.find(g => g.id === id);
     return genre?.nameHe || id;
+};
+
+export const getRoleName = (id: string): string => {
+    const role = BAND_ROLES.find(r => r.id === id);
+    return role?.nameHe || id;
 };
 
 // ============ HELPERS ============

@@ -18,7 +18,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { repository } from '../../repositories';
 import type { Band, User } from '../../types';
-import { getGenreName, getInstrumentName } from '../../utils';
+import { getGenreName, getInstrumentName, getRoleName } from '../../utils';
 import './Bands.css';
 import './BandDetails.css';
 import { BandProgress } from '../../components/bands/BandProgress';
@@ -235,7 +235,20 @@ export function BandDetailsPage() {
                                         )}
                                     </div>
                                     <div className="member-name">{memberUser?.displayName || 'משתמש'}</div>
-                                    <div className="member-role">{getInstrumentName(member.instrumentId)}</div>
+                                    <div className="member-role">
+                                        {member.instruments && member.instruments.length > 0
+                                            ? member.instruments.map(i => getInstrumentName(i)).join(', ')
+                                            : member.roles && member.roles.length > 0
+                                                ? member.roles.map(r => getRoleName(r)).join(', ')
+                                                : getInstrumentName(member.instrumentId)
+                                        }
+                                        {/* Show roles if instruments are also present (or merged display) */}
+                                        {member.instruments && member.instruments.length > 0 && member.roles && member.roles.length > 0 && (
+                                            <span className="text-xs text-muted block">
+                                                {member.roles.map(r => getRoleName(r)).join(', ')}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             );
                         })}
